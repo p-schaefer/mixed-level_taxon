@@ -78,14 +78,14 @@ res.ratio<-data.frame(all.ID=c(1,2,3,4,5,5),
 )
 rownames(res.ratio)<-rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 
-checked<-c(F,F,F,F,F,F)
-names(checked)<-c("n.p","n.c","n.o","n.f","n.g","n.s")
-
 res.ratio<-t(apply(res.ratio,1,cumsum))
 
 rem.coms<-list()
 
 for (x in 1:30){
+  checked<-c(F,F,F,F,F,F)
+  names(checked)<-c("n.p","n.c","n.o","n.f","n.g","n.s")
+  
   taxa<-t(ref.coms[[x]])
   taxa<-cbind(rownames(taxa),taxa)
   colnames(taxa)<-c("full.taxon","count")
@@ -94,8 +94,8 @@ for (x in 1:30){
   colnames(taxa)[3:8]<-c("n.p","n.c","n.o","n.f","n.g","n.s")
   taxa[c(1,3:8)]<-apply(taxa[c(1,3:8)],2,as.character)
   taxa$count<-as.numeric(as.character(taxa$count))
-
-    for (i in names(rev(taxa.list))) {
+  
+  for (i in names(rev(taxa.list))) {
     if (i=="n.s"){
       for (n in unique(taxa[,i])) {
         if (taxa$count[taxa$n.s==n]==0) next
@@ -174,23 +174,44 @@ for (x in 1:30){
   row.names(rem.out[[x]])<-rem.out.names[[x]]
 }
 rem.out<-lapply(rem.out,t)
-rem.out<-lapply(rem.out,data.frame)
+#rem.out<-lapply(rem.out,data.frame)
 
-rem.df<-do.call(rbind.fill, rem.out)
+unique.taxa<-unique(unlist(lapply(rem.out,colnames)))
 
-rem.df[is.na(rem.df)]<-0
-ref.df[is.na(ref.df)]<-0
+rem.df<-data.frame(matrix(nrow=30,ncol=length(unique.taxa)))
+colnames(rem.df)<-unique.taxa
 
-rownames(rem.df)<-paste0("rem",1:30)
-rownames(ref.df)<-paste0("ref",1:30)
+unique.taxa.all<-unique(c(unlist(lapply(rem.out,colnames)),unlist(lapply(rem.coms,"[[",1))))
 
-all.df<-rbind.fill(ref.df,rem.df)
-rownames(all.df)<-c(paste0("ref",1:30),paste0("rem",1:30))
+all.df<-data.frame(matrix(nrow=30,ncol=length(unique.taxa.all)))
+colnames(all.df)<-unique.taxa.all
+
+for (x in 1:30) {
+  rem.df[x,]<-rem.out[[x]][,match(unique.taxa,colnames(rem.out[[x]]),nomatch =NA)]
+}
+
+all.df<-data.frame(matrix(nrow=60,ncol=length(unique.taxa.all)))
+colnames(all.df)<-unique.taxa.all
+rownames(all.df)<-c(paste0("rem",1:30),paste0("ref",1:30))
+
+for (x in 1:30) {
+  all.df[x,]<-rem.out[[x]][,match(unique.taxa.all,colnames(rem.out[[x]]),nomatch =NA)]
+  all.df[x+30,]<-ref.coms[[x]][,match(unique.taxa.all,colnames(ref.coms[[x]]),nomatch =NA)]
+}
+
 all.df[is.na(all.df)]<-0
-
 all.df<-all.df[,colSums(all.df)>0]
 
-ordiplot(vegan::cca(log10(all.df+1),scale=T),type="t",scaling="symmetric")
+rem.df[is.na(rem.df)]<-0
+rem.df<-rem.df[,colSums(rem.df)>0]
+
+ref.df[is.na(ref.df)]<-0
+ref.df<-ref.df[,colSums(ref.df)>0]
+
+#heatmap(log(as.matrix(all.df)+1))
+
+ord1<-vegan::cca(log10(rem.df+1))
+vegan::ordiplot(vegan::cca(log10(all.df+1),scale=T),type="t",scaling="symmetric",display = "sites")
 
 
 ###################
@@ -232,5 +253,7 @@ ca.score<-((totala.p*1) +
 ###################
 #  compare raw datasets
 
-whole.pca<-vegan::rda()
-
+whole.cca<-vegan::cca(log10(ref.df+1))
+rem.cca<-vegan::cca(log10(rem.df+1))
+proc<-vegan::procrustes(whole.cca,rem.cca)
+vegan::protest(whole.cca,rem.cca)
