@@ -64,8 +64,12 @@ master.taxonomy<-function(p.n=5,
   
   ref.out<-t(as.numeric(taxa$count))
   colnames(ref.out)<-taxa$full.taxon
+
+  out<-list()
+  out$ref.out<-ref.out
+  out$taxa<-taxa
   
-  return(ref.out)
+  return(out)
 }
 
 
@@ -91,7 +95,7 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
     taxa[c(1,3:8)]<-apply(taxa[c(1,3:8)],2,as.character)
     taxa$count<-as.numeric(as.character(taxa$count))
     
-    for (i in names(rev(taxa.list))) {
+    for (i in rev(names(checked))) {
       if (i=="n.s"){
         for (n in unique(taxa[,i])) {
           if (taxa$count[taxa$n.s==n]==0) next
@@ -162,6 +166,10 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
     
     rem.coms[[x]]<-taxa
   }
+  
+  ref.df<-data.frame(matrix(unlist(ref.coms), ncol=30, byrow=F))
+  rownames(ref.df)<-colnames(ref.coms[[1]])
+  ref.df<-data.frame(t(ref.df))
   
   rem.out<-lapply(rem.coms,"[[",'count')
   rem.out<-lapply(rem.out,data.frame)

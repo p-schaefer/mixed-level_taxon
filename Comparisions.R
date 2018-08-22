@@ -22,12 +22,8 @@ ref.out<-master.taxonomy(p.n=5, # number of phyla to start with
 # Sample 500 taxa from the master taxonomy 30 times as list and DF
 ref.coms<-list()
 for (x in 1:30){
-  ref.coms[[x]]<-vegan::rrarefy(ref.out,500)
+  ref.coms[[x]]<-vegan::rrarefy(ref.out$ref.out,500)
 }
-
-ref.df<-data.frame(matrix(unlist(ref.coms), nrow=ncol(ref.out), byrow=F))
-rownames(ref.df)<-colnames(ref.out)
-ref.df<-data.frame(t(ref.df))
 
 ###################
 # Ratios for identification rollups
@@ -42,8 +38,9 @@ res.ratio1<-res.ratio/rowSums(res.ratio)
 library(ggplot2)
 library(ggtern)
 ggtern(data=res.ratio1, aes(x=all.ID,y=non.ID, z=some.ID)) +
-  geom_point() +
-  geom_label(label=rownames(res.ratio1))
+  geom_line() +
+  geom_label(label=rownames(res.ratio1)) +
+  theme_showarrows()
 
 ###################
 # Perform taxonomic shuffle
@@ -52,7 +49,7 @@ tax.rem<-taxonomy.shuffle(ref.coms=ref.coms,
 
 ###################
 # Perform taxonomic roll ups/downs
-taxroll.dk<-benth.taxroll(taxa=tax.rem$for.taxroll, 
+dk.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
                           taxa.names=tax.rem$rem.taxlist,
                           roll.down=F, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
                           assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
@@ -61,11 +58,11 @@ taxroll.dk<-benth.taxroll(taxa=tax.rem$for.taxroll,
                           Criteria5b.numb=2 #critical limit for criteria 5b
 )
 
-taxroll.up<-benth.rollup(taxa=tax.rem$for.taxroll, 
+ru.df<-benth.rollup(taxa=tax.rem$for.taxroll, 
                          taxa.names=tax.rem$rem.taxlist,
                          roll.thresh=0.2)
 
-taxroll.down<-benth.rolldown(taxa=tax.rem$for.taxroll, 
+rd.df<-benth.rolldown(taxa=tax.rem$for.taxroll, 
                              taxa.names=tax.rem$rem.taxlist)
 
 
@@ -96,9 +93,47 @@ ca.score<-((totala.p*1) +
   (32+16+8+4+2+1)
 
 ###################
-#  compare raw datasets
+#  compare raw datasets - metrics
 
-whole.cca<-vegan::cca(log10(ref.df+1))
-rem.cca<-vegan::cca(log10(rem.df+1))
-proc<-vegan::procrustes(whole.cca,rem.cca)
+rem.div.sh.dif<-vegan::diversity(tax.rem$rem.df)-vegan::diversity(tax.rem$ref.df)
+dk.div.sh.dif<-vegan::diversity(t(dk.df))-vegan::diversity(tax.rem$ref.df)
+ru.div.sh.dif<-vegan::diversity(t(ru.df))-vegan::diversity(tax.rem$ref.df)
+rd.div.sh.dif<-vegan::diversity(t(rd.df))-vegan::diversity(tax.rem$ref.df)
+
+rem.div.si.dif<-vegan::diversity(tax.rem$rem.df,"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
+dk.div.si.dif<-vegan::diversity(t(dk.df),"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
+ru.div.si.dif<-vegan::diversity(t(ru.df),"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
+rd.div.si.dif<-vegan::diversity(t(rd.df),"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
+
+rem.ric.dif<-vegan::specnumber(tax.rem$rem.df)-vegan::specnumber(tax.rem$ref.df)
+dk.ric.dif<-vegan::specnumber(t(dk.df))-vegan::specnumber(tax.rem$ref.df)
+ru.ric.dif<-vegan::specnumber(t(ru.df))-vegan::specnumber(tax.rem$ref.df)
+rd.ric.dif<-vegan::specnumber(t(rd.df))-vegan::specnumber(tax.rem$ref.df)
+
+for (x in 1:30){
+  bray.diff<-vegan::vegdist()
+}
+
+###################
+#  compare raw datasets - ordinations
+
+rem.forOrd<-log10(tax.rem$rem.df+1)
+ref.forOrd<-log10(tax.rem$ref.df+1)
+dk.forOrd<-log10(dk.df+1)
+ru.forOrd<-log10(ru.df+1)
+rd.forOrd<-log10(rd.df+1)
+
+rem.forOrd<-rem.forOrd[,apply(rem.forOrd,2,function(x)length(which(x>0)))>2]
+ref.forOrd<-ref.forOrd[,apply(ref.forOrd,2,function(x)length(which(x>0)))>2]
+dk.forOrd<-dk.forOrd[,apply(dk.forOrd,2,function(x)length(which(x>0)))>2]
+ru.forOrd<-ru.forOrd[,apply(ru.forOrd,2,function(x)length(which(x>0)))>2]
+rd.forOrd<-rd.forOrd[,apply(rd.forOrd,2,function(x)length(which(x>0)))>2]
+
+
+whole.cca<-vegan::cca(tax.rem$ref.df)
+rem.cca<-vegan::cca(tax.rem$rem.df)
+proc<-vegan::procrustes(whole.cca,rem.cca,scaling="symmetric")
 vegan::protest(whole.cca,rem.cca)
+
+
+
