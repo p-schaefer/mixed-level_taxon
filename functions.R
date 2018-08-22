@@ -228,6 +228,11 @@ benth.taxroll<-function(taxa, #taxa by site matrix
   
   #browser()
   
+  full.n<-tax.full.ranks.name[match(rownames(dat.out),lapply(tax.full.ranks.name,tail,1))]
+
+  dat.out<-data.frame(t(dat.out))
+  colnames(dat.out)<-lapply(full.n,paste0,collapse="-")
+  
   out<-dat.out
 
   return(out)
@@ -328,6 +333,10 @@ benth.rolldown<-function(taxa, #taxa by site matrix
     }
   }
   #browser()
+  full.n<-tax.full.ranks.name[match(rownames(dat.out),lapply(tax.full.ranks.name,tail,1))]
+  
+  dat.out<-data.frame(t(dat.out))
+  colnames(dat.out)<-lapply(full.n,paste0,collapse="-")
   
   out<-dat.out
   
@@ -418,6 +427,10 @@ benth.rollup<-function(taxa, #taxa by site matrix
       )
     }
   }
+  full.n<-tax.full.ranks.name[match(rownames(dat.out),lapply(tax.full.ranks.name,tail,1))]
+  
+  dat.out<-data.frame(t(dat.out))
+  colnames(dat.out)<-lapply(full.n,paste0,collapse="-")
   
   out<-dat.out
   return(out)

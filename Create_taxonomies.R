@@ -170,6 +170,7 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
   ref.df<-data.frame(matrix(unlist(ref.coms), ncol=30, byrow=F))
   rownames(ref.df)<-colnames(ref.coms[[1]])
   ref.df<-data.frame(t(ref.df))
+  colnames(ref.df)<-gsub(".","-",colnames(ref.df),fixed=T)
   
   rem.out<-lapply(rem.coms,"[[",'count')
   rem.out<-lapply(rem.out,data.frame)

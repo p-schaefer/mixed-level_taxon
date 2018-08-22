@@ -96,22 +96,41 @@ ca.score<-((totala.p*1) +
 #  compare raw datasets - metrics
 
 rem.div.sh.dif<-vegan::diversity(tax.rem$rem.df)-vegan::diversity(tax.rem$ref.df)
-dk.div.sh.dif<-vegan::diversity(t(dk.df))-vegan::diversity(tax.rem$ref.df)
-ru.div.sh.dif<-vegan::diversity(t(ru.df))-vegan::diversity(tax.rem$ref.df)
-rd.div.sh.dif<-vegan::diversity(t(rd.df))-vegan::diversity(tax.rem$ref.df)
+dk.div.sh.dif<-vegan::diversity(dk.df)-vegan::diversity(tax.rem$ref.df)
+ru.div.sh.dif<-vegan::diversity(ru.df)-vegan::diversity(tax.rem$ref.df)
+rd.div.sh.dif<-vegan::diversity(rd.df)-vegan::diversity(tax.rem$ref.df)
 
 rem.div.si.dif<-vegan::diversity(tax.rem$rem.df,"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
-dk.div.si.dif<-vegan::diversity(t(dk.df),"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
-ru.div.si.dif<-vegan::diversity(t(ru.df),"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
-rd.div.si.dif<-vegan::diversity(t(rd.df),"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
+dk.div.si.dif<-vegan::diversity(dk.df,"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
+ru.div.si.dif<-vegan::diversity(ru.df,"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
+rd.div.si.dif<-vegan::diversity(rd.df,"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
 
 rem.ric.dif<-vegan::specnumber(tax.rem$rem.df)-vegan::specnumber(tax.rem$ref.df)
-dk.ric.dif<-vegan::specnumber(t(dk.df))-vegan::specnumber(tax.rem$ref.df)
-ru.ric.dif<-vegan::specnumber(t(ru.df))-vegan::specnumber(tax.rem$ref.df)
-rd.ric.dif<-vegan::specnumber(t(rd.df))-vegan::specnumber(tax.rem$ref.df)
+dk.ric.dif<-vegan::specnumber(dk.df)-vegan::specnumber(tax.rem$ref.df)
+ru.ric.dif<-vegan::specnumber(ru.df)-vegan::specnumber(tax.rem$ref.df)
+rd.ric.dif<-vegan::specnumber(rd.df)-vegan::specnumber(tax.rem$ref.df)
+
+rem.bray.diff<-NA
+dk.bray.diff<-NA
+ru.bray.diff<-NA
+rd.bray.diff<-NA
 
 for (x in 1:30){
-  bray.diff<-vegan::vegdist()
+  t1<-plyr::rbind.fill(tax.rem$rem.df[x,],tax.rem$ref.df[x,])
+  t1[is.na(t1)]<-0
+  rem.bray.diff[x]<-vegan::vegdist(t1)
+  
+  t1<-plyr::rbind.fill(dk.df[x,],tax.rem$ref.df[x,])
+  t1[is.na(t1)]<-0
+  dk.bray.diff[x]<-vegan::vegdist(t1)
+  
+  t1<-plyr::rbind.fill(ru.df[x,],tax.rem$ref.df[x,])
+  t1[is.na(t1)]<-0
+  ru.bray.diff[x]<-vegan::vegdist(t1)
+  
+  t1<-plyr::rbind.fill(rd.df[x,],tax.rem$ref.df[x,])
+  t1[is.na(t1)]<-0
+  rd.bray.diff[x]<-vegan::vegdist(t1)
 }
 
 ###################
@@ -130,10 +149,14 @@ ru.forOrd<-ru.forOrd[,apply(ru.forOrd,2,function(x)length(which(x>0)))>2]
 rd.forOrd<-rd.forOrd[,apply(rd.forOrd,2,function(x)length(which(x>0)))>2]
 
 
-whole.cca<-vegan::cca(tax.rem$ref.df)
-rem.cca<-vegan::cca(tax.rem$rem.df)
-proc<-vegan::procrustes(whole.cca,rem.cca,scaling="symmetric")
-vegan::protest(whole.cca,rem.cca)
+ref.ca<-vegan::cca(ref.forOrd)
+rem.ca<-vegan::cca(rem.forOrd)
+dk.ca<-vegan::cca(dk.forOrd)
+ru.ca<-vegan::cca(ru.forOrd)
+rd.ca<-vegan::cca(rd.forOrd)
 
-
+rem.proc<-vegan::procrustes(ref.ca,rem.ca)
+dk.proc<-vegan::procrustes(ref.ca,dk.ca)
+ru.proc<-vegan::procrustes(ref.ca,ru.ca)
+rd.proc<-vegan::procrustes(ref.ca,rd.ca)
 
