@@ -1,6 +1,16 @@
 source("Create_taxonomies.R")
 source("functions.R")
 
+loop.out<-list()
+
+loop.out$total.comm<-data.frame()
+loop.out$ref.comm<-data.frame()
+loop.out$rem.comm<-data.frame()
+loop.out$complet.index<-data.frame()
+loop.out$diversity<-data.frame()
+loop.out$ordination<-data.frame()
+loop.out$whole.comm<-data.frame()
+
 ###################
 # Create master taxonomy
 ref.out<-master.taxonomy(p.n=5, # number of phyla to start with
@@ -22,13 +32,23 @@ ref.out<-master.taxonomy(p.n=5, # number of phyla to start with
 # Sample 500 taxa from the master taxonomy 30 times as list and DF
 ref.coms<-list()
 for (x in 1:30){
-  ref.coms[[x]]<-vegan::rrarefy(ref.out$ref.out,500)
+  temp.com<-ref.out$ref.out
+  
+  specnumb<-floor(rnorm(1,mean(ncol(ref.out$ref.out)/2),ncol(ref.out$ref.out)/6))
+  specnumb<-max(1,specnumb)
+  specnumb<-min(ncol(ref.out$ref.out),specnumb)
+  
+  speckeep<-sample(colnames(ref.out$ref.out),specnumb)
+  
+  temp.com[,!colnames(temp.com)%in%speckeep]<-0
+  
+  ref.coms[[x]]<-vegan::rrarefy(temp.com,500)
 }
 
 ###################
 # Ratios for identification rollups
 res.ratio<-data.frame(all.ID=c(2,4,8,16,32,64),
-                      non.ID=c(16,4,2,1,0,0),
+                      non.ID=c(16,4,2,1,1,0),
                       some.ID=c(5,4,3,2,1,0),
                       row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
                       )
@@ -47,11 +67,12 @@ ggtern(data=res.ratio1, aes(x=all.ID,y=non.ID, z=some.ID)) +
 tax.rem<-taxonomy.shuffle(ref.coms=ref.coms,
                            res.ratio=res.ratio)
 
+colnames(tax.rem$rem.df)<-gsub("-NA","",colnames(tax.rem$rem.df))
 ###################
 # Perform taxonomic roll ups/downs
 dk.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
                           taxa.names=tax.rem$rem.taxlist,
-                          roll.down=F, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
+                          roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
                           assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
                           Criteria3.percent=0.2, #critical limit for criteria 3
                           Criteria5a.percent=0.5, #critical limit for criteria 5a
@@ -148,15 +169,46 @@ dk.forOrd<-dk.forOrd[,apply(dk.forOrd,2,function(x)length(which(x>0)))>2]
 ru.forOrd<-ru.forOrd[,apply(ru.forOrd,2,function(x)length(which(x>0)))>2]
 rd.forOrd<-rd.forOrd[,apply(rd.forOrd,2,function(x)length(which(x>0)))>2]
 
-
 ref.ca<-vegan::cca(ref.forOrd)
 rem.ca<-vegan::cca(rem.forOrd)
 dk.ca<-vegan::cca(dk.forOrd)
 ru.ca<-vegan::cca(ru.forOrd)
 rd.ca<-vegan::cca(rd.forOrd)
 
-rem.proc<-vegan::procrustes(ref.ca,rem.ca)
-dk.proc<-vegan::procrustes(ref.ca,dk.ca)
-ru.proc<-vegan::procrustes(ref.ca,ru.ca)
-rd.proc<-vegan::procrustes(ref.ca,rd.ca)
+rem.proc<-vegan::procrustes(ref.ca,rem.ca,symmetric = TRUE)
+dk.proc<-vegan::procrustes(ref.ca,dk.ca,symmetric = TRUE)
+ru.proc<-vegan::procrustes(ref.ca,ru.ca,symmetric = TRUE)
+rd.proc<-vegan::procrustes(ref.ca,rd.ca,symmetric = TRUE)
+
+###################
+#  compare raw datasets - matrix procrustes
+
+rem.forOrd<-log10(tax.rem$rem.df+1)
+ref.forOrd<-log10(tax.rem$ref.df+1)
+dk.forOrd<-log10(dk.df+1)
+ru.forOrd<-log10(ru.df+1)
+rd.forOrd<-log10(rd.df+1)
+
+rem.forOrd<-rem.forOrd[,apply(rem.forOrd,2,function(x)length(which(x>0)))>2]
+ref.forOrd<-ref.forOrd[,apply(ref.forOrd,2,function(x)length(which(x>0)))>2]
+dk.forOrd<-dk.forOrd[,apply(dk.forOrd,2,function(x)length(which(x>0)))>2]
+ru.forOrd<-ru.forOrd[,apply(ru.forOrd,2,function(x)length(which(x>0)))>2]
+rd.forOrd<-rd.forOrd[,apply(rd.forOrd,2,function(x)length(which(x>0)))>2]
+
+rem.forOrd<-plyr::rbind.fill(rem.forOrd,ref.forOrd)
+rem.forOrd[is.na(rem.forOrd)]<-0
+
+dk.forOrd<-plyr::rbind.fill(dk.forOrd,ref.forOrd)
+dk.forOrd[is.na(dk.forOrd)]<-0
+
+ru.forOrd<-plyr::rbind.fill(ru.forOrd,ref.forOrd)
+ru.forOrd[is.na(ru.forOrd)]<-0
+
+rd.forOrd<-plyr::rbind.fill(rd.forOrd,ref.forOrd)
+rd.forOrd[is.na(rd.forOrd)]<-0
+
+rem.proc.m<-vegan::procrustes(rem.forOrd[31:60,],rem.forOrd[1:30,],symmetric = TRUE)
+dk.proc.m<-vegan::procrustes(dk.forOrd[31:60,],dk.forOrd[1:30,],symmetric = TRUE)
+ru.proc.m<-vegan::procrustes(ru.forOrd[31:60,],ru.forOrd[1:30,],symmetric = TRUE)
+rd.proc.m<-vegan::procrustes(rd.forOrd[31:60,],rd.forOrd[1:30,],symmetric = TRUE)
 

@@ -66,6 +66,7 @@ benth.taxroll<-function(taxa, #taxa by site matrix
   dat.orig<-dat.out
   
   for (i in c("phylum","class","order","family","genus","species")) {
+    #browser()
 
     at.i <-
       tax.lowest.rank[names(tax.lowest.rank) %in% rownames(dat.out)][which(tax.lowest.rank[names(tax.lowest.rank) %in% rownames(dat.out)] == i)]
@@ -99,9 +100,14 @@ benth.taxroll<-function(taxa, #taxa by site matrix
       #criteria 2 - taxon contains only 1 lower-level identification
       other.below.n <-other.at.n
       if (length(other.below.n) == 1) {
-        dat.out[over.n$name[nrow(over.n)], ] <-
+        #dat.out[over.n$name[nrow(over.n)], ] <-
+        #  colSums(dat.out[c(over.n$name[nrow(over.n)], names(other.below.n)), ])
+        #dat.out <- dat.out[!row.names(dat.out) %in% names(other.below.n), ]
+        dat.out[row.names(dat.out) %in% names(other.below.n), ] <-
           colSums(dat.out[c(over.n$name[nrow(over.n)], names(other.below.n)), ])
-        dat.out <- dat.out[!row.names(dat.out) %in% names(other.below.n), ]
+        dat.out <- dat.out[!row.names(dat.out) %in% over.n$name[nrow(over.n)], ]
+        
+        over.n$name[nrow(over.n)]
         
         suppressWarnings(
           rm(
