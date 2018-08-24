@@ -1,6 +1,50 @@
 source("Create_taxonomies.R")
 source("functions.R")
 
+###################
+# Resolution  Ratios
+
+res.ratio1<-data.frame(all.ID=c(2,4,8,16,32,64),
+                      non.ID=c(16,4,2,1,1,0),
+                      some.ID=c(5,4,3,2,1,0),
+                      row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
+)
+
+res.ratio2<-data.frame(all.ID=c(2,4,8,16,32,64),
+                       non.ID=c(5,4,3,2,1,0),
+                       some.ID=c(16,4,2,1,1,0),
+                       row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
+)
+
+res.ratio3<-data.frame(all.ID=c(16,4,2,1,1,0),
+                       non.ID=c(5,4,3,2,1,0),
+                       some.ID=c(2,4,8,16,32,64),
+                       row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
+)
+
+res.ratio11<-res.ratio1/rowSums(res.ratio1)
+res.ratio22<-res.ratio2/rowSums(res.ratio2)
+res.ratio33<-res.ratio3/rowSums(res.ratio3)
+
+res.ratio<-rbind(res.ratio11,res.ratio22,res.ratio33)
+res.ratio$label<-rep(rev(c("n.p","n.c","n.o","n.f","n.g","n.s")),3)
+res.ratio$class<-rep(c("non.ID","some.ID","all.ID"),each=6)
+
+library(ggplot2)
+library(ggtern)
+ggtern(data=res.ratio, aes(x=all.ID,y=non.ID, z=some.ID,colour=class,label=label)) +
+  geom_point() +
+  geom_line() +
+  geom_label() +
+  theme_showarrows() 
+  #geom_line()
+
+
+
+
+
+
+
 loop.out<-list()
 
 loop.out$total.comm<-data.frame()
@@ -121,11 +165,6 @@ dk.div.sh.dif<-vegan::diversity(dk.df)-vegan::diversity(tax.rem$ref.df)
 ru.div.sh.dif<-vegan::diversity(ru.df)-vegan::diversity(tax.rem$ref.df)
 rd.div.sh.dif<-vegan::diversity(rd.df)-vegan::diversity(tax.rem$ref.df)
 
-rem.div.si.dif<-vegan::diversity(tax.rem$rem.df,"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
-dk.div.si.dif<-vegan::diversity(dk.df,"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
-ru.div.si.dif<-vegan::diversity(ru.df,"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
-rd.div.si.dif<-vegan::diversity(rd.df,"simpson")-vegan::diversity(tax.rem$ref.df,"simpson")
-
 rem.ric.dif<-vegan::specnumber(tax.rem$rem.df)-vegan::specnumber(tax.rem$ref.df)
 dk.ric.dif<-vegan::specnumber(dk.df)-vegan::specnumber(tax.rem$ref.df)
 ru.ric.dif<-vegan::specnumber(ru.df)-vegan::specnumber(tax.rem$ref.df)
@@ -183,32 +222,36 @@ rd.proc<-vegan::procrustes(ref.ca,rd.ca,symmetric = TRUE)
 ###################
 #  compare raw datasets - matrix procrustes
 
-rem.forOrd<-log10(tax.rem$rem.df+1)
-ref.forOrd<-log10(tax.rem$ref.df+1)
-dk.forOrd<-log10(dk.df+1)
-ru.forOrd<-log10(ru.df+1)
-rd.forOrd<-log10(rd.df+1)
+if (F) {
+  rem.forOrd<-log10(tax.rem$rem.df+1)
+  ref.forOrd<-log10(tax.rem$ref.df+1)
+  dk.forOrd<-log10(dk.df+1)
+  ru.forOrd<-log10(ru.df+1)
+  rd.forOrd<-log10(rd.df+1)
+  
+  rem.forOrd<-rem.forOrd[,apply(rem.forOrd,2,function(x)length(which(x>0)))>2]
+  ref.forOrd<-ref.forOrd[,apply(ref.forOrd,2,function(x)length(which(x>0)))>2]
+  dk.forOrd<-dk.forOrd[,apply(dk.forOrd,2,function(x)length(which(x>0)))>2]
+  ru.forOrd<-ru.forOrd[,apply(ru.forOrd,2,function(x)length(which(x>0)))>2]
+  rd.forOrd<-rd.forOrd[,apply(rd.forOrd,2,function(x)length(which(x>0)))>2]
+  
+  rem.forOrd<-plyr::rbind.fill(rem.forOrd,ref.forOrd)
+  rem.forOrd[is.na(rem.forOrd)]<-0
+  
+  dk.forOrd<-plyr::rbind.fill(dk.forOrd,ref.forOrd)
+  dk.forOrd[is.na(dk.forOrd)]<-0
+  
+  ru.forOrd<-plyr::rbind.fill(ru.forOrd,ref.forOrd)
+  ru.forOrd[is.na(ru.forOrd)]<-0
+  
+  rd.forOrd<-plyr::rbind.fill(rd.forOrd,ref.forOrd)
+  rd.forOrd[is.na(rd.forOrd)]<-0
+  
+  rem.proc.m<-vegan::procrustes(rem.forOrd[31:60,],rem.forOrd[1:30,],symmetric = TRUE)
+  dk.proc.m<-vegan::procrustes(dk.forOrd[31:60,],dk.forOrd[1:30,],symmetric = TRUE)
+  ru.proc.m<-vegan::procrustes(ru.forOrd[31:60,],ru.forOrd[1:30,],symmetric = TRUE)
+  rd.proc.m<-vegan::procrustes(rd.forOrd[31:60,],rd.forOrd[1:30,],symmetric = TRUE)
+  
+}
 
-rem.forOrd<-rem.forOrd[,apply(rem.forOrd,2,function(x)length(which(x>0)))>2]
-ref.forOrd<-ref.forOrd[,apply(ref.forOrd,2,function(x)length(which(x>0)))>2]
-dk.forOrd<-dk.forOrd[,apply(dk.forOrd,2,function(x)length(which(x>0)))>2]
-ru.forOrd<-ru.forOrd[,apply(ru.forOrd,2,function(x)length(which(x>0)))>2]
-rd.forOrd<-rd.forOrd[,apply(rd.forOrd,2,function(x)length(which(x>0)))>2]
-
-rem.forOrd<-plyr::rbind.fill(rem.forOrd,ref.forOrd)
-rem.forOrd[is.na(rem.forOrd)]<-0
-
-dk.forOrd<-plyr::rbind.fill(dk.forOrd,ref.forOrd)
-dk.forOrd[is.na(dk.forOrd)]<-0
-
-ru.forOrd<-plyr::rbind.fill(ru.forOrd,ref.forOrd)
-ru.forOrd[is.na(ru.forOrd)]<-0
-
-rd.forOrd<-plyr::rbind.fill(rd.forOrd,ref.forOrd)
-rd.forOrd[is.na(rd.forOrd)]<-0
-
-rem.proc.m<-vegan::procrustes(rem.forOrd[31:60,],rem.forOrd[1:30,],symmetric = TRUE)
-dk.proc.m<-vegan::procrustes(dk.forOrd[31:60,],dk.forOrd[1:30,],symmetric = TRUE)
-ru.proc.m<-vegan::procrustes(ru.forOrd[31:60,],ru.forOrd[1:30,],symmetric = TRUE)
-rd.proc.m<-vegan::procrustes(rd.forOrd[31:60,],rd.forOrd[1:30,],symmetric = TRUE)
 
