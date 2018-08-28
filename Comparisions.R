@@ -1,6 +1,7 @@
 source("Create_taxonomies.R")
 source("functions.R")
 
+set.seed(12345)
 ###################
 # Resolution  Ratios
 
@@ -63,7 +64,6 @@ out$res.ratio.sp.none<-loop.out
 out$res.ratio.sp.some<-loop.out
 out$res.ratio.sp.all<-loop.out
 
-pb <- txtProgressBar(min = 0, max = 1000, style = 1)
 for (i in 1:3){
   res.ratio<-list(res.ratio1,res.ratio2,res.ratio3)[[i]]
   res<-c("none","some","all")[i]
@@ -92,23 +92,30 @@ for (i in 1:3){
     # Sample 500 taxa from the master taxonomy 30 times as list and DF
     ref.coms<-list()
     for (x in 1:30){
-      max.rar<-500
-      
-      if (sum(ref.out$ref.out)<500){
-        max.rar<-300
+      repeat{
+        max.rar<-500
+        
+        if (sum(ref.out$ref.out)<500){
+          max.rar<-300
+        }
+        
+        temp.com<-ref.out$ref.out
+        
+        specnumb<-floor(rnorm(1,mean(ncol(ref.out$ref.out)/2),ncol(ref.out$ref.out)/6))
+        specnumb<-max(1,specnumb)
+        specnumb<-min(ncol(ref.out$ref.out),specnumb)
+        
+        speckeep<-sample(colnames(ref.out$ref.out),specnumb)
+        
+        temp.com[,!colnames(temp.com)%in%speckeep]<-0
+        
+        temp.com<-vegan::rrarefy(temp.com,max.rar)
+        
+        if (rowSums(temp.com)>100 & length(which(temp.com>0))>4){
+          break
+        }
       }
-      
-      temp.com<-ref.out$ref.out
-      
-      specnumb<-floor(rnorm(1,mean(ncol(ref.out$ref.out)/2),ncol(ref.out$ref.out)/6))
-      specnumb<-max(1,specnumb)
-      specnumb<-min(ncol(ref.out$ref.out),specnumb)
-      
-      speckeep<-sample(colnames(ref.out$ref.out),specnumb)
-      
-      temp.com[,!colnames(temp.com)%in%speckeep]<-0
-      
-      ref.coms[[x]]<-vegan::rrarefy(temp.com,max.rar)
+      ref.coms[[x]]<-temp.com
     }
     
     out[[i]]$ref.comm[[n]]<-ref.coms
@@ -333,9 +340,8 @@ for (i in 1:3){
       dk.proc.m<-vegan::procrustes(dk.forOrd[31:60,],dk.forOrd[1:30,],symmetric = TRUE)
       ru.proc.m<-vegan::procrustes(ru.forOrd[31:60,],ru.forOrd[1:30,],symmetric = TRUE)
       rd.proc.m<-vegan::procrustes(rd.forOrd[31:60,],rd.forOrd[1:30,],symmetric = TRUE)
-      setTxtProgressBar(pb, n)
     }
-    #print(n)
+    print(n)
   }
 }
 
