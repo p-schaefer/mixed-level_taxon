@@ -17,9 +17,9 @@ res.ratio2<-data.frame(all.ID=c(2,4,8,16,32,64),
                        row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
 
-res.ratio3<-data.frame(all.ID=c(16,4,2,1,1,0),
+res.ratio3<-data.frame(all.ID=c(16,4,2,1,1,1),
                        non.ID=c(5,4,3,2,1,0),
-                       some.ID=c(2,4,8,16,32,64),
+                       some.ID=c(2,4,8,16,32,0),
                        row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
 

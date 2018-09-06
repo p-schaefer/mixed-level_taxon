@@ -96,6 +96,7 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
     taxa$count<-as.numeric(as.character(taxa$count))
     
     for (i in rev(names(checked))) {
+      #if (i=="n.p") browser()
       if (i=="n.s"){
         for (n in unique(taxa[,i])) {
           if (taxa$count[taxa$n.s==n]==0) next
@@ -167,6 +168,8 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
     rem.coms[[x]]<-taxa
   }
   
+  #browser()
+  
   ref.df<-data.frame(matrix(unlist(ref.coms), ncol=30, byrow=F))
   rownames(ref.df)<-colnames(ref.coms[[1]])
   ref.df<-data.frame(t(ref.df))
@@ -204,6 +207,9 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
     all.df[x+30,]<-ref.coms[[x]][,match(unique.taxa.all,colnames(ref.coms[[x]]),nomatch =NA)]
   }
   
+  #browser()
+  
+  
   rem.taxlist<-list()
   
   for (i in 1:length(unique.taxa)) {
@@ -213,9 +219,12 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
     t1$name<-as.character(t1$name)
     t1$rank<-as.character(t1$rank)
     rem.taxlist[[i]]<-t1
+    names(rem.taxlist)[i]<-tail(t1$name,1)
   }
   
-  names(rem.taxlist)<-unlist(lapply(lapply(rem.taxlist, "[[", 1), tail, n = 1), use.names = T)
+  #names(rem.taxlist)<-unlist(lapply(lapply(rem.taxlist, "[[", 1), tail, n = 1), use.names = F)
+  
+  #browser()
   
   for.taxroll<-data.frame(t(rem.df))
   for.taxroll<-cbind(unlist(lapply(lapply(rem.taxlist, "[[", 1), tail, n = 1), use.names = T),for.taxroll)
