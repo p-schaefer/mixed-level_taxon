@@ -72,20 +72,23 @@ for (i in 1:3){
     
     ###################
     # Create master taxonomy
-    ref.out<-master.taxonomy(p.n=5, # number of phyla to start with
-                             p.s=2, # Class size parameter - nbinom
-                             p.m=2, # Class mu parameter - nbinom
-                             c.s=2, # Order size parameter - nbinom
-                             c.m=2, # Order size parameter - nbinom
-                             o.s=2, # Family size parameter - nbinom
-                             o.m=2, # Family size parameter - nbinom
-                             f.s=2, # Genus size parameter - nbinom
-                             f.m=2, # Genus size parameter - nbinom
-                             g.s=2, # Species size parameter - nbinom
-                             g.m=2, # Species size parameter - nbinom
-                             s.mean=5, # log-normal mean for species abundances
-                             s.sd=2 # log-normal sd for species abundances
-    )
+    repeat{
+      ref.out<-master.taxonomy(p.n=5, # number of phyla to start with
+                               p.s=2, # Class size parameter - nbinom
+                               p.m=2, # Class mu parameter - nbinom
+                               c.s=2, # Order size parameter - nbinom
+                               c.m=2, # Order size parameter - nbinom
+                               o.s=2, # Family size parameter - nbinom
+                               o.m=2, # Family size parameter - nbinom
+                               f.s=2, # Genus size parameter - nbinom
+                               f.m=2, # Genus size parameter - nbinom
+                               g.s=2, # Species size parameter - nbinom
+                               g.m=2, # Species size parameter - nbinom
+                               s.mean=5, # log-normal mean for species abundances
+                               s.sd=2 # log-normal sd for species abundances
+      )
+      if (rowSums(ref.out$ref.out)>300) {break}
+    }
     
     out[[i]]$total.comm[[n]]<-ref.out
     ###################
