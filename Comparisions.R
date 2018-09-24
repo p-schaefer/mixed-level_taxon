@@ -1,3 +1,5 @@
+rm(list=ls())
+
 source("Create_taxonomies.R")
 source("functions.R")
 
@@ -5,21 +7,21 @@ set.seed(12345)
 ###################
 # Resolution  Ratios
 
-res.ratio1<-data.frame(all.ID=c(2,4,8,16,32,64),
-                      non.ID=c(16,4,2,1,1,0),
-                      some.ID=c(5,4,3,2,1,0),
+res.ratio1<-data.frame(all.ID=c(7,17,34,51,60,100),
+                      non.ID=c(60,50,33,16,7,0),
+                      some.ID=c(33,33,33,33,33,0),
                       row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
 
-res.ratio2<-data.frame(all.ID=c(2,4,8,16,32,64),
-                       non.ID=c(5,4,3,2,1,0),
-                       some.ID=c(16,4,2,1,1,0),
+res.ratio2<-data.frame(all.ID=c(65,70,75,80,85,100),
+                       non.ID=c(25,20,15,10,5,0),
+                       some.ID=c(10,10,10,10,10,0),
                        row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
 
-res.ratio3<-data.frame(all.ID=c(16,4,2,1,1,1),
-                       non.ID=c(5,4,3,2,1,0),
-                       some.ID=c(2,4,8,16,32,0),
+res.ratio3<-data.frame(all.ID=c(10,25,35,45,55,100),
+                       non.ID=c(20,15,15,10,10,0),
+                       some.ID=c(70,60,50,45,35,0),
                        row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
 
@@ -32,16 +34,25 @@ res.ratio33<-res.ratio3/rowSums(res.ratio3)
 
 res.ratio<-rbind(res.ratio11,res.ratio22,res.ratio33)
 res.ratio$label<-rep(rev(c("n.p","n.c","n.o","n.f","n.g","n.s")),3)
-res.ratio$class<-rep(c("non.ID","some.ID","all.ID"),each=6)
+res.ratio$class<-rep(c("Few Species IDs","Most Species IDs","Intermediate Species IDs"),each=6)
+
+res.ratio<-reshape2::melt(res.ratio,id=c("label","class"))
+
+res.ratio<-res.ratio[res.ratio$label!="n.p",]
 
 if (F){
   library(ggplot2)
-  library(ggtern)
-  ggtern(data=res.ratio, aes(x=all.ID,y=non.ID, z=some.ID,colour=class,label=label)) +
-    geom_point() +
+  ggplot(data=res.ratio, aes(x=label,y=value,shape=variable,colour=variable, group=variable)) +
+    geom_point()+
     geom_line() +
-    geom_label() +
-    theme_showarrows() 
+    scale_x_discrete(limits=rev(c("n.c","n.o","n.f","n.g","n.s")))+
+    facet_wrap(~class)
+  #library(ggtern)
+  # ggtern(data=res.ratio, aes(x=all.ID,y=non.ID, z=some.ID,colour=class,label=label)) +
+  #   geom_point() +
+  #   geom_line() +
+  #   geom_label() +
+  #   theme_showarrows() 
   #geom_line()
 }
 
@@ -68,7 +79,7 @@ for (i in 1:3){
   res.ratio<-list(res.ratio1,res.ratio2,res.ratio3)[[i]]
   res<-c("none","some","all")[i]
   print(i)
-  for (n in 1:1000){
+  for (n in 1:100){
     
     ###################
     # Create master taxonomy
@@ -87,10 +98,10 @@ for (i in 1:3){
                                s.mean=5, # log-normal mean for species abundances
                                s.sd=2 # log-normal sd for species abundances
       )
-      if (rowSums(ref.out$ref.out)>300) {break}
+      if (rowSums(ref.out$ref.out)>600) {break}
     }
     
-    out[[i]]$total.comm[[n]]<-ref.out
+    #out[[i]]$total.comm[[n]]<-ref.out
     ###################
     # Sample 500 taxa from the master taxonomy 30 times as list and DF
     ref.coms<-list()
@@ -121,7 +132,7 @@ for (i in 1:3){
       ref.coms[[x]]<-temp.com
     }
     
-    out[[i]]$ref.comm[[n]]<-ref.coms
+    #out[[i]]$ref.comm[[n]]<-ref.coms
     
     ###################
     # Ratios for identification rollups
@@ -140,7 +151,7 @@ for (i in 1:3){
     
     colnames(tax.rem$rem.df)<-gsub("-NA","",colnames(tax.rem$rem.df))
     
-    out[[i]]$rem.comm[[n]]<-tax.rem
+    #out[[i]]$rem.comm[[n]]<-tax.rem
     
     ###################
     # Perform taxonomic roll ups/downs
@@ -160,157 +171,184 @@ for (i in 1:3){
     rd.df<-benth.rolldown(taxa=tax.rem$for.taxroll, 
                           taxa.names=tax.rem$rem.taxlist)
     
+    
+    dk.noRoll.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
+                         taxa.names=tax.rem$rem.taxlist,
+                         roll.down=F, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
+                         assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
+                         Criteria3.percent=0.2, #critical limit for criteria 3
+                         Criteria5a.percent=0.5, #critical limit for criteria 5a
+                         Criteria5b.numb=2 #critical limit for criteria 5b
+    )
+    dk.noAssign.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
+                         taxa.names=tax.rem$rem.taxlist,
+                         roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
+                         assign.undet=F, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
+                         Criteria3.percent=0.2, #critical limit for criteria 3
+                         Criteria5a.percent=0.5, #critical limit for criteria 5a
+                         Criteria5b.numb=2 #critical limit for criteria 5b
+    )
+    dk.lowerP3.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
+                         taxa.names=tax.rem$rem.taxlist,
+                         roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
+                         assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
+                         Criteria3.percent=0.1, #critical limit for criteria 3
+                         Criteria5a.percent=0.5, #critical limit for criteria 5a
+                         Criteria5b.numb=2 #critical limit for criteria 5b
+    )
+    dk.higherP3.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
+                         taxa.names=tax.rem$rem.taxlist,
+                         roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
+                         assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
+                         Criteria3.percent=0.3, #critical limit for criteria 3
+                         Criteria5a.percent=0.5, #critical limit for criteria 5a
+                         Criteria5b.numb=2 #critical limit for criteria 5b
+    )
+    dk.lowerP5.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
+                         taxa.names=tax.rem$rem.taxlist,
+                         roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
+                         assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
+                         Criteria3.percent=0.2, #critical limit for criteria 3
+                         Criteria5a.percent=0.4, #critical limit for criteria 5a
+                         Criteria5b.numb=2 #critical limit for criteria 5b
+    )
+    dk.higherP5.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
+                         taxa.names=tax.rem$rem.taxlist,
+                         roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
+                         assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
+                         Criteria3.percent=0.2, #critical limit for criteria 3
+                         Criteria5a.percent=0.6, #critical limit for criteria 5a
+                         Criteria5b.numb=2 #critical limit for criteria 5b
+    )
+    
     ###################
     #  Calculate index of dataset completeness
     
-    tax.lowest.rank <-
-      unlist(lapply(lapply(tax.rem$rem.taxlist, "[[", 2), tail, n = 1), use.names = T)
+    # tax.lowest.rank <-
+    #   unlist(lapply(lapply(tax.rem$rem.taxlist, "[[", 2), tail, n = 1), use.names = T)
+    # 
+    # t1<-colSums(tax.rem$rem.df)
+    # 
+    # totala<-sum(t1)
+    # totala.s<-sum(t1[tax.lowest.rank=="species"])/totala
+    # totala.g<-sum(t1[tax.lowest.rank=="genus"])/totala
+    # totala.f<-sum(t1[tax.lowest.rank=="family"])/totala
+    # totala.o<-sum(t1[tax.lowest.rank=="order"])/totala
+    # totala.c<-sum(t1[tax.lowest.rank=="class"])/totala
+    # totala.p<-sum(t1[tax.lowest.rank=="phylum"])/totala
+    # 
+    # ca.score<-((totala.p*1) +
+    #              (totala.c*2) +
+    #              (totala.o*4) +
+    #              (totala.f*8) +
+    #              (totala.g*16) +
+    #              (totala.s*32))/
+    #   (32+16+8+4+2+1)
     
-    t1<-colSums(tax.rem$rem.df)
-    
-    totala<-sum(t1)
-    totala.s<-sum(t1[tax.lowest.rank=="species"])/totala
-    totala.g<-sum(t1[tax.lowest.rank=="genus"])/totala
-    totala.f<-sum(t1[tax.lowest.rank=="family"])/totala
-    totala.o<-sum(t1[tax.lowest.rank=="order"])/totala
-    totala.c<-sum(t1[tax.lowest.rank=="class"])/totala
-    totala.p<-sum(t1[tax.lowest.rank=="phylum"])/totala
-    
-    ca.score<-((totala.p*1) +
-                 (totala.c*2) +
-                 (totala.o*4) +
-                 (totala.f*8) +
-                 (totala.g*16) +
-                 (totala.s*32))/
-      (32+16+8+4+2+1)
     
     ###################
     #  compare raw datasets - metrics
     
-    div.out<-data.frame(matrix(nrow=12,ncol=30+3))
+    variants<-c("raw","dec.key","dec.key.noRoll","dec.key.noAssign",
+                "dec.key.lowerP3","dec.key.higherP3","dec.key.lowerP5",
+                "dec.key.higherP5","ru","rd")
+    
+    div.out<-data.frame(matrix(nrow=30,ncol=30+3))
     colnames(div.out)[1:3]<-c("Resolution","Treatment","Index")
     
-    div.out$Index<-c(rep(c("Shannon","Richness","Bray-Curtis"),each=4)) 
-    div.out$Treatment<-c(rep(c("raw","dec.key","ru","rd"),times=3)) 
+    div.out$Index<-c(rep(c("Shannon","Richness","Bray-Curtis"),each=10)) 
+    div.out$Treatment<-c(rep(variants,times=3)) 
     div.out$Resolution<-res
     
-    div.out[div.out$Index=="Shannon" & div.out$Treatment=="raw",-c(1:3)]<-vegan::diversity(tax.rem$rem.df)-vegan::diversity(tax.rem$ref.df)
-    div.out[div.out$Index=="Shannon" & div.out$Treatment=="dec.key",-c(1:3)]<-vegan::diversity(dk.df)-vegan::diversity(tax.rem$ref.df)
-    div.out[div.out$Index=="Shannon" & div.out$Treatment=="ru",-c(1:3)]<-vegan::diversity(ru.df)-vegan::diversity(tax.rem$ref.df)
-    div.out[div.out$Index=="Shannon" & div.out$Treatment=="rd",-c(1:3)]<-vegan::diversity(rd.df)-vegan::diversity(tax.rem$ref.df)
-    
-    div.out[div.out$Index=="Richness" & div.out$Treatment=="raw",-c(1:3)]<-vegan::specnumber(tax.rem$rem.df)-vegan::specnumber(tax.rem$ref.df)
-    div.out[div.out$Index=="Richness" & div.out$Treatment=="dec.key",-c(1:3)]<-vegan::specnumber(dk.df)-vegan::specnumber(tax.rem$ref.df)
-    div.out[div.out$Index=="Richness" & div.out$Treatment=="ru",-c(1:3)]<-vegan::specnumber(ru.df)-vegan::specnumber(tax.rem$ref.df)
-    div.out[div.out$Index=="Richness" & div.out$Treatment=="rd",-c(1:3)]<-vegan::specnumber(rd.df)-vegan::specnumber(tax.rem$ref.df)
-    
-    rem.bray.diff<-NA
-    dk.bray.diff<-NA
-    ru.bray.diff<-NA
-    rd.bray.diff<-NA
-    
-    for (x in 1:30){
-      t1<-plyr::rbind.fill(tax.rem$rem.df[x,],tax.rem$ref.df[x,])
-      t1[is.na(t1)]<-0
-      rem.bray.diff[x]<-vegan::vegdist(t1)
-      
-      t1<-plyr::rbind.fill(dk.df[x,],tax.rem$ref.df[x,])
-      t1[is.na(t1)]<-0
-      dk.bray.diff[x]<-vegan::vegdist(t1)
-      
-      t1<-plyr::rbind.fill(ru.df[x,],tax.rem$ref.df[x,])
-      t1[is.na(t1)]<-0
-      ru.bray.diff[x]<-vegan::vegdist(t1)
-      
-      t1<-plyr::rbind.fill(rd.df[x,],tax.rem$ref.df[x,])
-      t1[is.na(t1)]<-0
-      rd.bray.diff[x]<-vegan::vegdist(t1)
-    }
-    
-    div.out[div.out$Index=="Bray-Curtis" & div.out$Treatment=="raw",-c(1:3)]<-rem.bray.diff
-    div.out[div.out$Index=="Bray-Curtis" & div.out$Treatment=="dec.key",-c(1:3)]<-dk.bray.diff
-    div.out[div.out$Index=="Bray-Curtis" & div.out$Treatment=="ru",-c(1:3)]<-ru.bray.diff
-    div.out[div.out$Index=="Bray-Curtis" & div.out$Treatment=="rd",-c(1:3)]<-rd.bray.diff
-    
-    out[[i]]$diversity<-rbind(out[[i]]$diversity,div.out)
-    
-    
-    ###################
-    #  compare raw datasets - abundance ordinations
-    
-    ord.out<-data.frame(matrix(nrow=8,ncol=3+3))
+    ord.out<-data.frame(matrix(nrow=20,ncol=3+3))
     colnames(ord.out)[1:3]<-c("Resolution","Treatment","Index")
     
-    ord.out$Index<-c(rep(c("Abundance","Presence/Absence"),each=4)) 
-    ord.out$Treatment<-c(rep(c("raw","dec.key","ru","rd"),times=2)) 
+    ord.out$Index<-c(rep(c("Abundance","Presence/Absence"),each=10)) 
+    ord.out$Treatment<-c(rep(variants,times=2)) 
     ord.out$Resolution<-res
+    colnames(ord.out)[4:6]<-c("SS","Scale","pval")
     
-    rem.forOrd<-log10(tax.rem$rem.df+1)
-    ref.forOrd<-log10(tax.rem$ref.df+1)
-    dk.forOrd<-log10(dk.df+1)
-    ru.forOrd<-log10(ru.df+1)
-    rd.forOrd<-log10(rd.df+1)
-    
-    rem.forOrd<-rem.forOrd[,apply(rem.forOrd,2,function(x)length(which(x>0)))>1]
-    ref.forOrd<-ref.forOrd[,apply(ref.forOrd,2,function(x)length(which(x>0)))>1]
-    dk.forOrd<-dk.forOrd[,apply(dk.forOrd,2,function(x)length(which(x>0)))>1]
-    ru.forOrd<-ru.forOrd[,apply(ru.forOrd,2,function(x)length(which(x>0)))>1]
-    rd.forOrd<-rd.forOrd[,apply(rd.forOrd,2,function(x)length(which(x>0)))>1]
-    
-    ref.ca<-vegan::cca(ref.forOrd)
-    rem.ca<-vegan::cca(rem.forOrd)
-    dk.ca<-vegan::cca(dk.forOrd)
-    ru.ca<-vegan::cca(ru.forOrd)
-    rd.ca<-vegan::cca(rd.forOrd)
-    
-    rem.proc<-vegan::protest(ref.ca,rem.ca)
-    dk.proc<-vegan::protest(ref.ca,dk.ca)
-    ru.proc<-vegan::protest(ref.ca,ru.ca)
-    rd.proc<-vegan::protest(ref.ca,rd.ca)
-    
-    ord.out[ord.out$Index=="Abundance" & ord.out$Treatment=="raw",-c(1:3)]<-c(rem.proc$ss,rem.proc$scale,rem.proc$signif)
-    ord.out[ord.out$Index=="Abundance" & ord.out$Treatment=="dec.key",-c(1:3)]<-c(dk.proc$ss,dk.proc$scale,dk.proc$signif)
-    ord.out[ord.out$Index=="Abundance" & ord.out$Treatment=="ru",-c(1:3)]<-c(ru.proc$ss,ru.proc$scale,ru.proc$signif)
-    ord.out[ord.out$Index=="Abundance" & ord.out$Treatment=="rd",-c(1:3)]<-c(rd.proc$ss,rd.proc$scale,rd.proc$signif)
-    
-    ###################
-    #  compare raw datasets - p/a ordinations
-    
-    rem.forOrd<-tax.rem$rem.df
-    rem.forOrd[rem.forOrd>0]<-1
-    ref.forOrd<-tax.rem$ref.df
-    ref.forOrd[ref.forOrd>0]<-1
-    dk.forOrd<-dk.df
-    dk.forOrd[dk.forOrd>0]<-1
-    ru.forOrd<-ru.df
-    ru.forOrd[ru.forOrd>0]<-1
-    rd.forOrd<-rd.df
-    rd.forOrd[rd.forOrd>0]<-1
-    
-    rem.forOrd<-rem.forOrd[,apply(rem.forOrd,2,function(x)length(which(x>0)))>1]
-    ref.forOrd<-ref.forOrd[,apply(ref.forOrd,2,function(x)length(which(x>0)))>1]
-    dk.forOrd<-dk.forOrd[,apply(dk.forOrd,2,function(x)length(which(x>0)))>1]
-    ru.forOrd<-ru.forOrd[,apply(ru.forOrd,2,function(x)length(which(x>0)))>1]
-    rd.forOrd<-rd.forOrd[,apply(rd.forOrd,2,function(x)length(which(x>0)))>1]
-    
-    ref.ca<-vegan::cca(ref.forOrd)
-    rem.ca<-vegan::cca(rem.forOrd)
-    dk.ca<-vegan::cca(dk.forOrd)
-    ru.ca<-vegan::cca(ru.forOrd)
-    rd.ca<-vegan::cca(rd.forOrd)
-    
-    rem.proc<-vegan::protest(ref.ca,rem.ca,symmetric = TRUE)
-    dk.proc<-vegan::protest(ref.ca,dk.ca,symmetric = TRUE)
-    ru.proc<-vegan::protest(ref.ca,ru.ca,symmetric = TRUE)
-    rd.proc<-vegan::protest(ref.ca,rd.ca,symmetric = TRUE)
-    
-    ord.out[ord.out$Index=="Presence/Absence" & ord.out$Treatment=="raw",-c(1:3)]<-c(rem.proc$ss,rem.proc$scale,rem.proc$signif)
-    ord.out[ord.out$Index=="Presence/Absence" & ord.out$Treatment=="dec.key",-c(1:3)]<-c(dk.proc$ss,dk.proc$scale,dk.proc$signif)
-    ord.out[ord.out$Index=="Presence/Absence" & ord.out$Treatment=="ru",-c(1:3)]<-c(ru.proc$ss,ru.proc$scale,ru.proc$signif)
-    ord.out[ord.out$Index=="Presence/Absence" & ord.out$Treatment=="rd",-c(1:3)]<-c(rd.proc$ss,rd.proc$scale,rd.proc$signif)
-    
-    out[[i]]$ordination<-rbind(out[[i]]$ordination,ord.out)
+    for (z in variants) {
+      if (z=="raw"){
+        test.df<-tax.rem$rem.df
+      }
+      if (z=="dec.key"){
+        test.df<-dk.df
+      }
+      if (z=="dec.key.noRoll"){
+        test.df<-dk.noRoll.df
+      }
+      if (z=="dec.key.noAssign"){
+        test.df<-dk.noAssign.df
+      }
+      if (z=="dec.key.lowerP3"){
+        test.df<-dk.lowerP3.df
+      }
+      if (z=="dec.key.higherP3"){
+        test.df<-dk.higherP3.df
+      }
+      if (z=="dec.key.lowerP5"){
+        test.df<-dk.lowerP5.df
+      }
+      if (z=="dec.key.higherP5"){
+        test.df<-dk.higherP5.df
+      }
+      if (z=="ru"){
+        test.df<-ru.df
+      }
+      if (z=="rd"){
+        test.df<-rd.df
+      }
+      
+      #Diversity + Richness
+      div.out[div.out$Index=="Shannon" & div.out$Treatment==z,-c(1:3)]<-vegan::diversity(test.df)-vegan::diversity(tax.rem$ref.df)
+      div.out[div.out$Index=="Richness" & div.out$Treatment==z,-c(1:3)]<-vegan::specnumber(test.df)-vegan::specnumber(tax.rem$ref.df)
+      
+      #Bray-Curtis
+      bray.diff<-NA
+      for (x in 1:30){
+        t1<-plyr::rbind.fill(test.df[x,],tax.rem$ref.df[x,])
+        t1[is.na(t1)]<-0
+        bray.diff[x]<-vegan::vegdist(t1)
+      }
+      
+      div.out[div.out$Index=="Bray-Curtis" & div.out$Treatment==z,-c(1:3)]<-bray.diff
+      
+      out[[i]]$diversity<-rbind(out[[i]]$diversity,div.out)
+      
+      #Abundance Ordination
+      rem.forOrd<-log10(test.df+1)
+      ref.forOrd<-log10(tax.rem$ref.df+1)
 
+      rem.forOrd<-rem.forOrd[,apply(rem.forOrd,2,function(x)length(which(x>0)))>1]
+      ref.forOrd<-ref.forOrd[,apply(ref.forOrd,2,function(x)length(which(x>0)))>1]
+
+      ref.ca<-vegan::cca(ref.forOrd)
+      rem.ca<-vegan::cca(rem.forOrd)
+
+      rem.proc<-vegan::protest(ref.ca,rem.ca)
+
+      ord.out[ord.out$Index=="Abundance" & ord.out$Treatment==z,-c(1:3)]<-c(rem.proc$ss,rem.proc$scale,rem.proc$signif)
+      
+      #P/A Ordination
+      rem.forOrd<-test.df
+      rem.forOrd[rem.forOrd>0]<-1
+      ref.forOrd<-tax.rem$ref.df
+      ref.forOrd[ref.forOrd>0]<-1
+
+      rem.forOrd<-rem.forOrd[,apply(rem.forOrd,2,function(x)length(which(x>0)))>1]
+      ref.forOrd<-ref.forOrd[,apply(ref.forOrd,2,function(x)length(which(x>0)))>1]
+
+      ref.ca<-vegan::cca(ref.forOrd)
+      rem.ca<-vegan::cca(rem.forOrd)
+
+      rem.proc<-vegan::protest(ref.ca,rem.ca,symmetric = TRUE)
+
+      ord.out[ord.out$Index=="Presence/Absence" & ord.out$Treatment==z,-c(1:3)]<-c(rem.proc$ss,rem.proc$scale,rem.proc$signif)
+      
+      out[[i]]$ordination<-rbind(out[[i]]$ordination,ord.out)
+    }
+    
     ###################
     #  compare raw datasets - matrix procrustes
     
