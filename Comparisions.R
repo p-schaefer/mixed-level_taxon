@@ -313,9 +313,7 @@ for (i in 1:3){
       }
       
       div.out[div.out$Index=="Bray-Curtis" & div.out$Treatment==z,-c(1:3)]<-bray.diff
-      
-      out[[i]]$diversity<-rbind(out[[i]]$diversity,div.out)
-      
+
       #Abundance Ordination
       rem.forOrd<-log10(test.df+1)
       ref.forOrd<-log10(tax.rem$ref.df+1)
@@ -346,8 +344,11 @@ for (i in 1:3){
 
       ord.out[ord.out$Index=="Presence/Absence" & ord.out$Treatment==z,-c(1:3)]<-c(rem.proc$ss,rem.proc$scale,rem.proc$signif)
       
-      out[[i]]$ordination<-rbind(out[[i]]$ordination,ord.out)
     }
+    
+    out[[i]]$diversity<-rbind(out[[i]]$diversity,div.out)
+    out[[i]]$ordination<-rbind(out[[i]]$ordination,ord.out)
+    
     
     ###################
     #  compare raw datasets - matrix procrustes

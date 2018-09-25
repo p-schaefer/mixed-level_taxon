@@ -1,7 +1,7 @@
 source("functions.R")
 
-metrics<-lapply(output1,"[[",5)
-ordination<-lapply(output1,"[[",6)
+metrics<-lapply(output2,"[[",5)
+ordination<-lapply(output2,"[[",6)
 
 metrics1<-do.call(rbind,metrics)
 metrics1<-reshape2::melt(metrics1,id=c("Resolution","Treatment","Index"))
