@@ -1,7 +1,7 @@
 source("functions.R")
 
-metrics<-lapply(output2,"[[",5)
-ordination<-lapply(output2,"[[",6)
+metrics<-lapply(output3,"[[",5)
+ordination<-lapply(output3,"[[",6)
 
 metrics1<-do.call(rbind,metrics)
 metrics1<-reshape2::melt(metrics1,id=c("Resolution","Treatment","Index"))
@@ -17,7 +17,7 @@ metric.plot<-ggplot(aes(x=Treatment,y=value),data=metrics1)+
   facet_wrap(Resolution~Index,scales="free_y")
 
 metric.plot1<-ggplot(aes(x=Resolution,y=value,fill=Treatment),data=metrics1[metrics1$Treatment%in%c("dec.key","rd"),])+
-  geom_split_violin() +
+  geom_boxplot() +
   facet_wrap(~Index,scales="free_y")
 
 metric.plot2<-beanplot::beanplot(value~as.factor(Treatment)*as.factor(Resolution),
@@ -27,6 +27,10 @@ metric.plot2<-beanplot::beanplot(value~as.factor(Treatment)*as.factor(Resolution
                                  col = list("purple", c("lightblue", "black")),
                                  axes=F)
 
-ord.plot<-ggplot(aes(x=Treatment,y=X4),data=ordination1)+
+PAord.plot<-ggplot(aes(x=Treatment,y=SS),data=ordination1[ordination1$Index=="Presence/Absence",])+
+  geom_boxplot() +
+  facet_wrap(Resolution~Index,scales="free_y",nrow=3)
+
+Abundord.plot<-ggplot(aes(x=Treatment,y=SS),data=ordination1[ordination1$Index=="Abundance",])+
   geom_boxplot() +
   facet_wrap(Resolution~Index,scales="free_y",nrow=3)

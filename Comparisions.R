@@ -7,20 +7,20 @@ set.seed(12345)
 ###################
 # Resolution  Ratios
 
-res.ratio1<-data.frame(all.ID=c(7,17,34,51,60,100),
-                      non.ID=c(60,50,33,16,7,0),
-                      some.ID=c(33,33,33,33,33,0),
+res.ratio1<-data.frame(all.ID=c(10,18,37,63,85,100),
+                      non.ID=c(55,50,38,20,5,0),
+                      some.ID=c(35,32,25,17,10,0),
                       row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
 
 res.ratio2<-data.frame(all.ID=c(65,70,75,80,85,100),
-                       non.ID=c(25,20,15,10,5,0),
-                       some.ID=c(10,10,10,10,10,0),
+                       non.ID=c(13,10,7,4,1,0),
+                       some.ID=c(22,19,16,13,10,0),
                        row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
 
 res.ratio3<-data.frame(all.ID=c(10,25,35,45,55,100),
-                       non.ID=c(20,15,15,10,10,0),
+                       non.ID=c(20,17,14,11,8,0),
                        some.ID=c(70,60,50,45,35,0),
                        row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
@@ -71,13 +71,13 @@ loop.out$ordination<-data.frame()
 loop.out$whole.comm<-data.frame()
 
 out<-list()
-out$res.ratio.sp.none<-loop.out
-out$res.ratio.sp.some<-loop.out
-out$res.ratio.sp.all<-loop.out
+out$few.sp.ID<-loop.out
+out$most.sp.ID<-loop.out
+out$inter.sp.ID<-loop.out
 
 for (i in 1:3){
   res.ratio<-list(res.ratio1,res.ratio2,res.ratio3)[[i]]
-  res<-c("none","some","all")[i]
+  res<-c("Few Species IDs","Most Species IDs","Intermediate Species IDs")[i]
   print(i)
   for (n in 1:100){
     
