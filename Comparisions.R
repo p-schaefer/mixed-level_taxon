@@ -7,32 +7,32 @@ set.seed(12345)
 ###################
 # Resolution  Ratios
 
-res.ratio1<-data.frame(all.ID=c(10,18,37,63,85,100),
-                      non.ID=c(55,50,38,20,5,0),
-                      some.ID=c(35,32,25,17,10,0),
+res.ratio1<-data.frame(all.ID=c(5,15,30,60,75,100),
+                      non.ID=c(70,55,35,10,0,0),
+                      some.ID=c(25,30,35,30,25,0),
                       row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
 
-res.ratio2<-data.frame(all.ID=c(65,70,75,80,85,100),
+res.ratio2<-data.frame(all.ID=c(57,65,73,81,89,100),
                        non.ID=c(13,10,7,4,1,0),
-                       some.ID=c(22,19,16,13,10,0),
+                       some.ID=c(30,25,20,15,10,0),
                        row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
 
-res.ratio3<-data.frame(all.ID=c(10,25,35,45,55,100),
+res.ratio3<-data.frame(all.ID=c(10,28,46,64,82,100),
                        non.ID=c(20,17,14,11,8,0),
-                       some.ID=c(70,60,50,45,35,0),
+                       some.ID=c(70,55,40,25,10,0),
                        row.names=rev(c("n.p","n.c","n.o","n.f","n.g","n.s"))
 )
 
 ###################
 # Create plot resolution ratios
 
-res.ratio11<-res.ratio1/rowSums(res.ratio1)
-res.ratio22<-res.ratio2/rowSums(res.ratio2)
-res.ratio33<-res.ratio3/rowSums(res.ratio3)
+# res.ratio11<-res.ratio1/rowSums(res.ratio1)
+# res.ratio22<-res.ratio2/rowSums(res.ratio2)
+# res.ratio33<-res.ratio3/rowSums(res.ratio3)
 
-res.ratio<-rbind(res.ratio11,res.ratio22,res.ratio33)
+res.ratio<-rbind(res.ratio1,res.ratio2,res.ratio3)
 res.ratio$label<-rep(rev(c("n.p","n.c","n.o","n.f","n.g","n.s")),3)
 res.ratio$class<-rep(c("Few Species IDs","Most Species IDs","Intermediate Species IDs"),each=6)
 

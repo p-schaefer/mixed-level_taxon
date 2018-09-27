@@ -27,10 +27,10 @@ metric.plot2<-beanplot::beanplot(value~as.factor(Treatment)*as.factor(Resolution
                                  col = list("purple", c("lightblue", "black")),
                                  axes=F)
 
-PAord.plot<-ggplot(aes(x=Treatment,y=SS),data=ordination1[ordination1$Index=="Presence/Absence",])+
+PAord.plot<-ggplot(aes(x=Treatment,y=Scale),data=ordination1[ordination1$Index=="Presence/Absence",])+
   geom_boxplot() +
   facet_wrap(Resolution~Index,scales="free_y",nrow=3)
 
-Abundord.plot<-ggplot(aes(x=Treatment,y=SS),data=ordination1[ordination1$Index=="Abundance",])+
+Abundord.plot<-ggplot(aes(x=Treatment,y=Scale),data=ordination1[ordination1$Index=="Abundance",])+
   geom_boxplot() +
   facet_wrap(Resolution~Index,scales="free_y",nrow=3)
