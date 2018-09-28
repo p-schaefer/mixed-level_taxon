@@ -192,7 +192,7 @@ for (i in 1:3){
                          taxa.names=tax.rem$rem.taxlist,
                          roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
                          assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
-                         Criteria3.percent=0.1, #critical limit for criteria 3
+                         Criteria3.percent=0.05, #critical limit for criteria 3
                          Criteria5a.percent=0.5, #critical limit for criteria 5a
                          Criteria5b.numb=2 #critical limit for criteria 5b
     )
@@ -200,7 +200,7 @@ for (i in 1:3){
                          taxa.names=tax.rem$rem.taxlist,
                          roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
                          assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
-                         Criteria3.percent=0.3, #critical limit for criteria 3
+                         Criteria3.percent=0.5, #critical limit for criteria 3
                          Criteria5a.percent=0.5, #critical limit for criteria 5a
                          Criteria5b.numb=2 #critical limit for criteria 5b
     )
@@ -209,7 +209,7 @@ for (i in 1:3){
                          roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
                          assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
                          Criteria3.percent=0.2, #critical limit for criteria 3
-                         Criteria5a.percent=0.4, #critical limit for criteria 5a
+                         Criteria5a.percent=0.3, #critical limit for criteria 5a
                          Criteria5b.numb=2 #critical limit for criteria 5b
     )
     dk.higherP5.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
@@ -217,8 +217,25 @@ for (i in 1:3){
                          roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
                          assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
                          Criteria3.percent=0.2, #critical limit for criteria 3
-                         Criteria5a.percent=0.6, #critical limit for criteria 5a
+                         Criteria5a.percent=0.7, #critical limit for criteria 5a
                          Criteria5b.numb=2 #critical limit for criteria 5b
+    )
+    
+    dk.higherP5b.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
+                                  taxa.names=tax.rem$rem.taxlist,
+                                  roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
+                                  assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
+                                  Criteria3.percent=0.2, #critical limit for criteria 3
+                                  Criteria5a.percent=0.7, #critical limit for criteria 5a
+                                  Criteria5b.numb=3 #critical limit for criteria 5b
+    )
+    dk.higherP5b2.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
+                                   taxa.names=tax.rem$rem.taxlist,
+                                   roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
+                                   assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
+                                   Criteria3.percent=0.2, #critical limit for criteria 3
+                                   Criteria5a.percent=0.7, #critical limit for criteria 5a
+                                   Criteria5b.numb=4 #critical limit for criteria 5b
     )
     
     ###################
@@ -251,19 +268,19 @@ for (i in 1:3){
     
     variants<-c("raw","dec.key","dec.key.noRoll","dec.key.noAssign",
                 "dec.key.lowerP3","dec.key.higherP3","dec.key.lowerP5",
-                "dec.key.higherP5","ru","rd")
+                "dec.key.higherP5","dec.key.higherP5b","dec.key.higherP5b2","ru","rd")
     
-    div.out<-data.frame(matrix(nrow=30,ncol=30+3))
+    div.out<-data.frame(matrix(nrow=36,ncol=36+3))
     colnames(div.out)[1:3]<-c("Resolution","Treatment","Index")
     
-    div.out$Index<-c(rep(c("Shannon","Richness","Bray-Curtis"),each=10)) 
+    div.out$Index<-c(rep(c("Shannon","Richness","Bray-Curtis"),each=12)) 
     div.out$Treatment<-c(rep(variants,times=3)) 
     div.out$Resolution<-res
     
-    ord.out<-data.frame(matrix(nrow=20,ncol=3+3))
+    ord.out<-data.frame(matrix(nrow=24,ncol=3+3))
     colnames(ord.out)[1:3]<-c("Resolution","Treatment","Index")
     
-    ord.out$Index<-c(rep(c("Abundance","Presence/Absence"),each=10)) 
+    ord.out$Index<-c(rep(c("Abundance","Presence/Absence"),each=12)) 
     ord.out$Treatment<-c(rep(variants,times=2)) 
     ord.out$Resolution<-res
     colnames(ord.out)[4:6]<-c("SS","Scale","pval")
