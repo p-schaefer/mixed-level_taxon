@@ -82,7 +82,9 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
   res.ratio<-t(apply(res.ratio,1,cumsum))
   
   rem.coms<-list()
-  for (x in 1:30){
+  
+  n.coms<-length(ref.coms)
+  for (x in 1:n.coms){
     checked<-c(F,F,F,F,F,F)
     names(checked)<-c("n.p","n.c","n.o","n.f","n.g","n.s")
     
@@ -170,7 +172,7 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
   
   #browser()
   
-  ref.df<-data.frame(matrix(unlist(ref.coms), ncol=30, byrow=F))
+  ref.df<-data.frame(matrix(unlist(ref.coms), ncol=n.coms, byrow=F))
   rownames(ref.df)<-colnames(ref.coms[[1]])
   ref.df<-data.frame(t(ref.df))
   colnames(ref.df)<-gsub(".","-",colnames(ref.df),fixed=T)
@@ -178,7 +180,7 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
   rem.out<-lapply(rem.coms,"[[",'count')
   rem.out<-lapply(rem.out,data.frame)
   rem.out.names<-lapply(rem.coms,"[[",'full.taxon')
-  for (x in 1:30){
+  for (x in 1:n.coms){
     row.names(rem.out[[x]])<-rem.out.names[[x]]
   }
   rem.out<-lapply(rem.out,t)
@@ -186,25 +188,25 @@ taxonomy.shuffle<-function(ref.coms,res.ratio){
   
   unique.taxa<-unique(unlist(lapply(rem.out,colnames)))
   
-  rem.df<-data.frame(matrix(nrow=30,ncol=length(unique.taxa)))
+  rem.df<-data.frame(matrix(nrow=n.coms,ncol=length(unique.taxa)))
   colnames(rem.df)<-unique.taxa
   
   unique.taxa.all<-unique(c(unlist(lapply(rem.out,colnames)),unlist(lapply(rem.coms,"[[",1))))
   
-  all.df<-data.frame(matrix(nrow=30,ncol=length(unique.taxa.all)))
+  all.df<-data.frame(matrix(nrow=n.coms,ncol=length(unique.taxa.all)))
   colnames(all.df)<-unique.taxa.all
   
-  for (x in 1:30) {
+  for (x in 1:n.coms) {
     rem.df[x,]<-rem.out[[x]][,match(unique.taxa,colnames(rem.out[[x]]),nomatch =NA)]
   }
   
-  all.df<-data.frame(matrix(nrow=60,ncol=length(unique.taxa.all)))
+  all.df<-data.frame(matrix(nrow=n.coms*2,ncol=length(unique.taxa.all)))
   colnames(all.df)<-unique.taxa.all
-  rownames(all.df)<-c(paste0("rem",1:30),paste0("ref",1:30))
+  rownames(all.df)<-c(paste0("rem",1:n.coms),paste0("ref",1:n.coms))
   
-  for (x in 1:30) {
+  for (x in 1:n.coms) {
     all.df[x,]<-rem.out[[x]][,match(unique.taxa.all,colnames(rem.out[[x]]),nomatch =NA)]
-    all.df[x+30,]<-ref.coms[[x]][,match(unique.taxa.all,colnames(ref.coms[[x]]),nomatch =NA)]
+    all.df[x+n.coms,]<-ref.coms[[x]][,match(unique.taxa.all,colnames(ref.coms[[x]]),nomatch =NA)]
   }
   
   #browser()

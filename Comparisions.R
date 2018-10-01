@@ -69,6 +69,7 @@ loop.out$complet.index<-data.frame()
 loop.out$diversity<-data.frame()
 loop.out$ordination<-data.frame()
 loop.out$whole.comm<-data.frame()
+loop.out$sim.stats<-data.frame()
 
 out<-list()
 out$few.sp.ID<-loop.out
@@ -115,8 +116,8 @@ for (i in 1:3){
         
         temp.com<-ref.out$ref.out
         
-        specnumb<-floor(rnorm(1,mean(ncol(ref.out$ref.out)/2),ncol(ref.out$ref.out)/6))
-        specnumb<-max(1,specnumb)
+        specnumb<-floor(rnbinom(1,size=ncol(ref.out$ref.out)/2,mu=ncol(ref.out$ref.out)/2))
+        specnumb<-max(5,specnumb)
         specnumb<-min(ncol(ref.out$ref.out),specnumb)
         
         speckeep<-sample(colnames(ref.out$ref.out),specnumb)
@@ -153,6 +154,23 @@ for (i in 1:3){
     
     #out[[i]]$rem.comm[[n]]<-tax.rem
     
+    sim.stats<-data.frame(comm=c("Whole",paste0(c("Sub","Rem"),rep(1:30,each=2))),
+                          n.p=NA,
+                          n.c=NA,
+                          n.o=NA,
+                          n.f=NA,
+                          n.g=NA,
+                          n.s=NA,
+                          unique_taxa_names=NA,
+                          total=NA)
+    
+    sim.stats[1,-c(1)]<-c(apply(ref.out$taxa[,1:6],2,function(x) length(unique(x))),
+                     length(ref.out$taxa$n.s),
+                     sum(ref.out$taxa$count))
+    #LEFT HERE TRYING TO GET SUMMARY STATS
+    plyr::rbind.fill(lapply(ref.coms,function(x) strsplit(split="-",x=colnames(x))))
+    
+    out[[i]]$sim.stats[[n]]
     ###################
     # Perform taxonomic roll ups/downs
     dk.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
@@ -270,7 +288,7 @@ for (i in 1:3){
                 "dec.key.lowerP3","dec.key.higherP3","dec.key.lowerP5",
                 "dec.key.higherP5","dec.key.higherP5b","dec.key.higherP5b2","ru","rd")
     
-    div.out<-data.frame(matrix(nrow=36,ncol=36+3))
+    div.out<-data.frame(matrix(nrow=36,ncol=30+3))
     colnames(div.out)[1:3]<-c("Resolution","Treatment","Index")
     
     div.out$Index<-c(rep(c("Shannon","Richness","Bray-Curtis"),each=12)) 
