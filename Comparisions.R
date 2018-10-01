@@ -3,6 +3,8 @@ rm(list=ls())
 source("Create_taxonomies.R")
 source("functions.R")
 
+library(dplyr)
+
 set.seed(12345)
 ###################
 # Resolution  Ratios
@@ -116,7 +118,8 @@ for (i in 1:3){
         
         temp.com<-ref.out$ref.out
         
-        specnumb<-floor(rnbinom(1,size=ncol(ref.out$ref.out)/2,mu=ncol(ref.out$ref.out)/2))
+        #specnumb<-floor(rnbinom(1,size=ncol(ref.out$ref.out)/2,mu=ncol(ref.out$ref.out)/2))
+        specnumb<-floor(runif(1,ncol(ref.out$ref.out)*(1/4),ncol(ref.out$ref.out)*(3/4)))
         specnumb<-max(5,specnumb)
         specnumb<-min(ncol(ref.out$ref.out),specnumb)
         
@@ -154,23 +157,6 @@ for (i in 1:3){
     
     #out[[i]]$rem.comm[[n]]<-tax.rem
     
-    sim.stats<-data.frame(comm=c("Whole",paste0(c("Sub","Rem"),rep(1:30,each=2))),
-                          n.p=NA,
-                          n.c=NA,
-                          n.o=NA,
-                          n.f=NA,
-                          n.g=NA,
-                          n.s=NA,
-                          unique_taxa_names=NA,
-                          total=NA)
-    
-    sim.stats[1,-c(1)]<-c(apply(ref.out$taxa[,1:6],2,function(x) length(unique(x))),
-                     length(ref.out$taxa$n.s),
-                     sum(ref.out$taxa$count))
-    #LEFT HERE TRYING TO GET SUMMARY STATS
-    plyr::rbind.fill(lapply(ref.coms,function(x) strsplit(split="-",x=colnames(x))))
-    
-    out[[i]]$sim.stats[[n]]
     ###################
     # Perform taxonomic roll ups/downs
     dk.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
@@ -238,13 +224,21 @@ for (i in 1:3){
                          Criteria5a.percent=0.7, #critical limit for criteria 5a
                          Criteria5b.numb=2 #critical limit for criteria 5b
     )
+    dk.higherP52.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
+                                  taxa.names=tax.rem$rem.taxlist,
+                                  roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
+                                  assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
+                                  Criteria3.percent=0.2, #critical limit for criteria 3
+                                  Criteria5a.percent=0.9, #critical limit for criteria 5a
+                                  Criteria5b.numb=2 #critical limit for criteria 5b
+    )
     
     dk.higherP5b.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
                                   taxa.names=tax.rem$rem.taxlist,
                                   roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
                                   assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
                                   Criteria3.percent=0.2, #critical limit for criteria 3
-                                  Criteria5a.percent=0.7, #critical limit for criteria 5a
+                                  Criteria5a.percent=0.5, #critical limit for criteria 5a
                                   Criteria5b.numb=3 #critical limit for criteria 5b
     )
     dk.higherP5b2.df<-benth.taxroll(taxa=tax.rem$for.taxroll, 
@@ -252,7 +246,7 @@ for (i in 1:3){
                                    roll.down=T, #apply roll downs in cases of unresolved taxonomy / otherwise will delete higher taxa
                                    assign.undet=T, #if rolling down, sites with no lower level taxa will be assigned to the most abundant taxon in dataset
                                    Criteria3.percent=0.2, #critical limit for criteria 3
-                                   Criteria5a.percent=0.7, #critical limit for criteria 5a
+                                   Criteria5a.percent=0.5, #critical limit for criteria 5a
                                    Criteria5b.numb=4 #critical limit for criteria 5b
     )
     
@@ -286,19 +280,19 @@ for (i in 1:3){
     
     variants<-c("raw","dec.key","dec.key.noRoll","dec.key.noAssign",
                 "dec.key.lowerP3","dec.key.higherP3","dec.key.lowerP5",
-                "dec.key.higherP5","dec.key.higherP5b","dec.key.higherP5b2","ru","rd")
+                "dec.key.higherP5","dec.key.higherP52","dec.key.higherP5b","dec.key.higherP5b2","ru","rd")
     
-    div.out<-data.frame(matrix(nrow=36,ncol=30+3))
+    div.out<-data.frame(matrix(nrow=length(variants)*3,ncol=30+3))
     colnames(div.out)[1:3]<-c("Resolution","Treatment","Index")
     
-    div.out$Index<-c(rep(c("Shannon","Richness","Bray-Curtis"),each=12)) 
+    div.out$Index<-c(rep(c("Shannon","Richness","Bray-Curtis"),each=length(variants))) 
     div.out$Treatment<-c(rep(variants,times=3)) 
     div.out$Resolution<-res
     
-    ord.out<-data.frame(matrix(nrow=24,ncol=3+3))
+    ord.out<-data.frame(matrix(nrow=length(variants)*2,ncol=3+3))
     colnames(ord.out)[1:3]<-c("Resolution","Treatment","Index")
     
-    ord.out$Index<-c(rep(c("Abundance","Presence/Absence"),each=12)) 
+    ord.out$Index<-c(rep(c("Abundance","Presence/Absence"),each=length(variants))) 
     ord.out$Treatment<-c(rep(variants,times=2)) 
     ord.out$Resolution<-res
     colnames(ord.out)[4:6]<-c("SS","Scale","pval")
@@ -327,6 +321,15 @@ for (i in 1:3){
       }
       if (z=="dec.key.higherP5"){
         test.df<-dk.higherP5.df
+      }
+      if (z=="dec.key.higherP52"){
+        test.df<-dk.higherP52.df
+      }
+      if (z=="dec.key.higherP5b"){
+        test.df<-dk.higherP5b.df
+      }
+      if (z=="dec.key.higherP5b2"){
+        test.df<-dk.higherP5b2.df
       }
       if (z=="ru"){
         test.df<-ru.df
@@ -381,6 +384,48 @@ for (i in 1:3){
       
     }
     
+    ## Simulation stats
+    
+    temp1<-data.frame(matrix((unlist(lapply(ref.coms,function(x) strsplit(split="-",x=colnames(x))))),ncol=6,byrow=T),stringsAsFactors = F)
+    colnames(temp1)<-c("n.p",
+                       "n.c",
+                       "n.o",
+                       "n.f",
+                       "n.g",
+                       "n.s")
+    
+    temp1$count<-unlist(ref.coms)
+    temp1$comm<-rep(paste0("Sub",1:30),each=as.numeric(lapply(ref.coms,ncol)[1]))
+    
+    temp2<-do.call(rbind,tax.rem$rem.coms)
+    temp2$comm<-rep(paste0("Rem",1:30),lapply(tax.rem$rem.coms,nrow))
+    temp2<-temp2 %>% select(n.p,n.c,n.o,n.f,n.g,n.s,count,comm)
+    
+    temp3<-rbind(temp1,temp2)
+    
+    temp3<-temp3 %>% 
+      filter(count>0)%>%
+      group_by(comm) %>%
+      arrange(desc(n.s)) %>%
+      dplyr::summarize(n.p=length(unique(n.p)),
+                       n.c=length(unique(n.c)),
+                       n.o=length(unique(n.o)),
+                       n.f=length(unique(n.f)),
+                       n.g=length(unique(n.g)),
+                       n.s=length(unique(n.s)),
+                       unique_taxa_names=length(count),
+                       total=sum(count))
+    temp3[nrow(temp3)+1,]<-c("Whole",apply(ref.out$taxa[,1:6],2,function(x) length(unique(x))),
+                             length(ref.out$taxa$n.s),
+                             sum(ref.out$taxa$count))
+    temp3$rep<-n
+    
+    #Paste all values to output
+    out[[i]]$sim.stats<-rbind(out[[i]]$sim.stats,temp3)
+    
+    div.out$rep<-n
+    ord.out$rep<-n
+
     out[[i]]$diversity<-rbind(out[[i]]$diversity,div.out)
     out[[i]]$ordination<-rbind(out[[i]]$ordination,ord.out)
     
