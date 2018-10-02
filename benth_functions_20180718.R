@@ -39,7 +39,7 @@ benth.taxnames<- function(x,
   if (!require(taxize,quietly = T)) install.packages('taxize')
   require(taxize,quietly = T)
   
-  x<-c("Simuliidae","Prosimulium mixum","Helodon","Simulium sp.", "Prosimulium/Helodon")
+  x<-c("Simuliidae","Prosimulium mixum","Helodon","Simulium sp.", "Prosimulium/Helodon", "Trichoptera","Trichoptera/Plecoptera")
   
   x<-as.character(x)
   
@@ -61,7 +61,7 @@ benth.taxnames<- function(x,
   
   #  Section 1: remove useless text from taxa names
   
-
+  
   tax.names <-
     gsub("Phylum|Subphylum|Class|Order|Family|Subfamily|Tribe",
          "",
@@ -83,14 +83,14 @@ benth.taxnames<- function(x,
   tax.names<-gsub("\\s*\\([^\\)]+\\)","",tax.names)
   
   tax.names<-trimws(tax.names)
-
+  
   #  Section 2: Check to see if any duplicates remain
   if (any(duplicated(tax.names))) stop(paste0("Duplicated taxa not permitted. Please consolidate: ",
                                               paste0(tax.names[duplicated(tax.names)], collapse=", ")))
   
   #  Section 3: Validate each taxon name
   tax.names1<-as.data.frame(resolve("Simuliidae",with_canonical_ranks=T,with_context = T,
-                      best_match_only=T,preferred_data_sources=gnrDB[1],fields="all")$gnr[F,])
+                                    best_match_only=T,preferred_data_sources=gnrDB[1],fields="all")$gnr[F,])
   tax.names1<-tax.names1[1:length(tax.names),]
   rownames(tax.names1)<-tax.names
   message("Retrieving taxonomic information...")
@@ -122,41 +122,17 @@ benth.taxnames<- function(x,
       }
       rm(temp1)
     }
-    
-    # if(nrow(temp1$gnr)==1) { #If 1 match
-    #   if(!grepl("Animalia|Bilateria",temp1$gnr$classification_path)){  #make sure its an animal (some plants or fungi have identical names as some animals)
-    #     temp1<-resolve(tax.names[i],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=3,fields="all")
-    #     if (any(grepl("Animalia|Bilateria",temp1$gnr$classification_path))){ #This will select the one that is an animal
-    #       tax.names1[i,]<-temp1$gnr[which(grepl("Animalia|Bilateria",temp1$gnr$classification_path))[1],]
-    #     } 
-    #   } else {
-    #     tax.names1[i,]<-temp1$gnr[1,]
-    #   }
-    # } else { # If no match is found, and use.NCBI is an option, look there for the taxon
-    #   if (use.NCBI) { 
-    #     temp1<-resolve(tax.names[i],with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=4,fields="all")
-    #     if(nrow(temp1$gnr)==1) {
-    #       if(!grepl("Bilateria",temp1$gnr$classification_path)){
-    #         temp1<-resolve(tax.names[i],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=4,fields="all")
-    #         if (any(grepl("Bilateria",temp1$gnr$classification_path))){
-    #           tax.names1[i,]<-temp1$gnr[which(grepl("Bilateria",temp1$gnr$classification_path))[1],]
-    #         } 
-    #       } else {
-    #         tax.names1[i,]<-temp1$gnr[1,]
-    #       }
-    #     }
-    #   }
-    # }
   }
   
   #colnames(tax.names1)<-colnames(temp1$gnr)
   #browser()
-  tax.names1$matched_name2[tax.names1$matched_name2!=tax.names1$submitted_name]<-NA
+  tax.names1$matched_name2[tax.names1$matched_name2!=tax.names1$submitted_name]<-NA #IS THIS CORRECT?
   
   # b. Check any taxa that could not be matched UNIQUELY in ITIS
   if (any(is.na(tax.names1$matched_name2))){
     no.match<-which(is.na(tax.names1$matched_name2))
     error<-0
+    resolved<-F
     for (i in no.match) { #For each that couldnt be found
       
       #if (tax.names[i]=="Bezzia/ Palpomyia"){
@@ -164,7 +140,7 @@ benth.taxnames<- function(x,
       #}
       
       #browser()
-      if (grepl("/",tax.names[i],fixed=T)){# Check if taxa contain a "/"
+      if (grepl("/",tax.names[i],fixed=T)){ # Check if taxa contain a "/"
         #If it does, separate the taxa and evaluate them individually
         #browser()
         error<-error+1
@@ -181,56 +157,25 @@ benth.taxnames<- function(x,
           
         }
         if (any(grepl(paste0(two.tax,collapse="|"),tax.names))){ #If any other taxa are in the dataset, treat undetermiend fraction as own taxa
-          #browser()
-          temp2<-resolve(two.tax,with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=3,fields="all")
-          if(nrow(temp2$gnr)==2) {
-            if(!any(grepl("Animalia|Bilateria",temp2$gnr$classification_path))){
-              temp2.1<-resolve(two.tax[1],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=3,fields="all")
-              temp2.2<-resolve(two.tax[2],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=3,fields="all")
-              
-              if (any(grepl("Animalia|Bilateria",c(temp2.1$gnr$classification_path,temp2.2$gnr$classification_path)))){
-                temp2$gnr<-rbind(temp2.1$gnr[which(grepl("Animalia|Bilateria",temp2$gnr$classification_path))[1],],
-                                 temp2.2$gnr[which(grepl("Animalia|Bilateria",temp2$gnr$classification_path))[1],])
-                higher.two.tax1<-as.data.frame(strsplit(temp2$gnr$classification_path,"|",fixed=T))
-                higher.two.rank1<-as.data.frame(strsplit(temp2$gnr$classification_path_ranks,"|",fixed=T))
-                #higher.shared.rank<-match(higher.two.rank1[,1], higher.two.rank1[,2])[length(higher.two.rank1[,1])-1]
-                higher.shared.rank<-max(na.omit(match(higher.two.rank1[,1], higher.two.rank1[,2])))-1
+          
+          for (n in gnrDB){
+            if (resolved) next
+            temp2<-resolve(two.tax,with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=n,fields="all")
+            if(nrow(temp2$gnr)==2) {
+              if(!any(grepl("Animalia|Bilateria",temp2$gnr$classification_path))){
+                temp2.1<-resolve(two.tax[1],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=n,fields="all")
+                temp2.2<-resolve(two.tax[2],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=n,fields="all")
                 
-                tax.names1[i,]<-resolve(as.character(higher.two.tax1[higher.shared.rank,1]),with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=3,fields="all")$gnr
-                
-                tax.names1[i,c(1,2,6,7,8,9,10)]<-c(tax.names[i],NA,tax.names[i],
-                                                   paste0(tax.names1$classification_path[i],"|",tax.names[i]),
-                                                   paste0(tax.names1$classification_path_ranks[i],"|artificial_",error),
-                                                   NA,
-                                                   NA)
-                other.i<-grep(paste0(two.tax,collapse="|"),tax.names)
-                other.i<-other.i[which(!tax.names[i]==rownames(tax.names1[other.i,]))]
-                for(n in other.i){
-                  template<-unlist(strsplit(tax.names1$classification_path[i],"|",fixed=T))
-                  class.path<-unlist(strsplit(tax.names1$classification_path[n],"|",fixed=T))
-                  new<-which(is.na(match(class.path,template)))
-                  new.class.path<-paste0(c(class.path[1:(new[1]-1)],tax.names[i],class.path[new]),collapse="|")
-                  
-                  template1<-unlist(strsplit(tax.names1$classification_path_ranks[i],"|",fixed=T))
-                  class.path1<-unlist(strsplit(tax.names1$classification_path_ranks[n],"|",fixed=T))
-                  new1<-which(is.na(match(class.path,template)))
-                  new.class.path1<-paste0(c(class.path1[1:(new1[1]-1)],template1[length(template1)],class.path1[new1]),collapse="|")
-                  
-                  tax.names1[n,c(7,8,9)]<-c(new.class.path,
-                                            new.class.path1,
-                                            NA)
-                  
+                if (any(grepl("Animalia|Bilateria",c(temp2.1$gnr$classification_path,temp2.2$gnr$classification_path)))){
+                  temp2$gnr<-rbind(temp2.1$gnr[which(grepl("Animalia|Bilateria",temp2$gnr$classification_path))[1],],
+                                   temp2.2$gnr[which(grepl("Animalia|Bilateria",temp2$gnr$classification_path))[1],])
                 }
               }
-            } else {
               higher.two.tax1<-t(plyr::rbind.fill(lapply(strsplit(temp2$gnr$classification_path,"|",fixed=T),function(x) as.data.frame(t(as.data.frame(x))))))
               higher.two.rank1<-t(plyr::rbind.fill(lapply(strsplit(temp2$gnr$classification_path_ranks,"|",fixed=T),function(x) as.data.frame(t(as.data.frame(x))))))
-              #higher.two.tax1<-as.data.frame(strsplit(temp2$gnr$classification_path,"|",fixed=T))
-              #higher.two.rank1<-as.data.frame(strsplit(temp2$gnr$classification_path_ranks,"|",fixed=T))
-              #higher.shared.rank<-match(higher.two.rank1[,1], higher.two.rank1[,2])[length(higher.two.rank1[,1])-1]
               higher.shared.rank<-max(na.omit(match(higher.two.rank1[,1], higher.two.rank1[,2])))-1
               
-              tax.names1[i,]<-resolve(as.character(higher.two.tax1[higher.shared.rank,1]),with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=3,fields="all")$gnr
+              tax.names1[i,]<-resolve(as.character(higher.two.tax1[higher.shared.rank,1]),with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=n,fields="all")$gnr
               
               tax.names1[i,c(1,2,6,7,8,9,10)]<-c(tax.names[i],NA,tax.names[i],
                                                  paste0(tax.names1$classification_path[i],"|",tax.names[i]),
@@ -253,147 +198,36 @@ benth.taxnames<- function(x,
                 tax.names1[n,c(7,8,9)]<-c(new.class.path,
                                           new.class.path1,
                                           NA)
-                
               }
-            }
-          } else {
-            if (use.NCBI) {
-              temp2<-resolve(two.tax,with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=4,fields="all")
-              if(nrow(temp2$gnr)==2) {
-                if(!any(grepl("Bilateria",temp2$gnr$classification_path))){
-                  temp2.1<-resolve(two.tax[1],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=4,fields="all")
-                  temp2.2<-resolve(two.tax[2],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=4,fields="all")
-                  
-                  if (any(grepl("Bilateria",c(temp2.1$gnr$classification_path,temp2.2$gnr$classification_path)))){
-                    temp2$gnr<-rbind(temp2.1$gnr[which(grepl("Bilateria",temp2$gnr$classification_path))[1],],
-                                     temp2.2$gnr[which(grepl("Bilateria",temp2$gnr$classification_path))[1],])
-                    higher.two.tax1<-as.data.frame(strsplit(temp2$gnr$classification_path,"|",fixed=T))
-                    higher.two.rank1<-as.data.frame(strsplit(temp2$gnr$classification_path_ranks,"|",fixed=T))
-                    higher.shared.rank<-max(na.omit(match(higher.two.rank1[,1], higher.two.rank1[,2])))-1
-                    
-                    #higher.shared.rank<-match(higher.two.rank1[,1], higher.two.rank1[,2])[length(higher.two.rank1[,1])-1]
-                    tax.names1[i,]<-resolve(as.character(higher.two.tax1[higher.shared.rank,1]),with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=4,fields="all")$gnr
-                    
-                    tax.names1[i,c(1,2,6,7,8,9,10)]<-c(tax.names[i],NA,tax.names[i],
-                                                       paste0(tax.names1$classification_path[i],"|",tax.names[i]),
-                                                       paste0(tax.names1$classification_path_ranks[i],"|artificial_",error),
-                                                       NA,
-                                                       NA)
-                    other.i<-grep(paste0(two.tax,collapse="|"),tax.names)
-                    other.i<-other.i[which(!tax.names[i]==rownames(tax.names1[other.i,]))]
-                    for(n in other.i){
-                      template<-unlist(strsplit(tax.names1$classification_path[i],"|",fixed=T))
-                      class.path<-unlist(strsplit(tax.names1$classification_path[n],"|",fixed=T))
-                      new<-which(is.na(match(class.path,template)))
-                      new.class.path<-paste0(c(class.path[1:(new[1]-1)],tax.names[i],class.path[new]),collapse="|")
-                      
-                      template1<-unlist(strsplit(tax.names1$classification_path_ranks[i],"|",fixed=T))
-                      class.path1<-unlist(strsplit(tax.names1$classification_path_ranks[n],"|",fixed=T))
-                      new1<-which(is.na(match(class.path,template)))
-                      new.class.path1<-paste0(c(class.path1[1:(new1[1]-1)],template1[length(template1)],class.path1[new1]),collapse="|")
-                      
-                      tax.names1[n,c(7,8,9)]<-c(new.class.path,
-                                                new.class.path1,
-                                                NA)
-                    }
-                  }
-                } else {
-                  #browser()
-                  higher.two.tax1<-t(plyr::rbind.fill(lapply(strsplit(temp2$gnr$classification_path,"|",fixed=T),function(x) as.data.frame(t(as.data.frame(x))))))
-                  higher.two.rank1<-t(plyr::rbind.fill(lapply(strsplit(temp2$gnr$classification_path_ranks,"|",fixed=T),function(x) as.data.frame(t(as.data.frame(x))))))
-                  
-                  #higher.shared.rank<-match(higher.two.rank1[,1], higher.two.rank1[,2])[length(higher.two.rank1[,1])-1]
-                  
-                  higher.shared.rank<-max(na.omit(match(higher.two.rank1[,1], higher.two.rank1[,2])))-1
-                  tax.names1[i,]<-resolve(as.character(higher.two.tax1[higher.shared.rank,1]),with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=4,fields="all")$gnr
-                  
-                  tax.names1[i,c(1,2,6,7,8,9,10)]<-c(tax.names[i],NA,tax.names[i],
-                                                     paste0(tax.names1$classification_path[i],"|",tax.names[i]),
-                                                     paste0(tax.names1$classification_path_ranks[i],"|artificial_",error),
-                                                     NA,
-                                                     NA)
-                  other.i<-grep(paste0(two.tax,collapse="|"),tax.names)
-                  other.i<-other.i[which(!tax.names[i]==rownames(tax.names1[other.i,]))]
-                  
-                  temp2.1<-resolve(tax.names[other.i[1]],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=4,fields="all")
-                  temp2.2<-resolve(tax.names[other.i[2]],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=4,fields="all")
-                  
-                  if (any(grepl("Bilateria",temp2.1$gnr$classification_path))){
-                    tax.names1[other.i[1],]<-temp2.1$gnr[which(grepl("Bilateria",temp2.1$gnr$classification_path))[1],]
-                  }
-                  if (any(grepl("Bilateria",temp2.2$gnr$classification_path))){
-                    tax.names1[other.i[2],]<-temp2.2$gnr[which(grepl("Bilateria",temp2.2$gnr$classification_path))[1],]
-                  }
-                  
-                  for(n in other.i){
-                    template<-unlist(strsplit(tax.names1$classification_path[i],"|",fixed=T))
-                    class.path<-unlist(strsplit(tax.names1$classification_path[n],"|",fixed=T))
-                    new<-which(is.na(match(class.path,template)))
-                    new.class.path<-paste0(c(class.path[1:(new[1]-1)],tax.names[i],class.path[new]),collapse="|")
-                    
-                    template1<-unlist(strsplit(tax.names1$classification_path_ranks[i],"|",fixed=T))
-                    class.path1<-unlist(strsplit(tax.names1$classification_path_ranks[n],"|",fixed=T))
-                    new1<-which(is.na(match(class.path,template)))
-                    new.class.path1<-paste0(c(class.path1[1:(new1[1]-1)],template1[length(template1)],class.path1[new1]),collapse="|")
-                    
-                    tax.names1[n,c(7,8,9)]<-c(new.class.path,
-                                              new.class.path1,
-                                              NA)
-                    
-                    
-                    #template<-unlist(strsplit(tax.names1$classification_path[i],"|",fixed=T))
-                    #class.path<-unlist(strsplit(tax.names1$classification_path[n],"|",fixed=T))
-                    #new<-which(is.na(match(class.path,template)))
-                    #new.class.path<-c(class.path[1:(new[1]-1)],tax.names[i],class.path[new])
-                    
-                    #template1<-unlist(strsplit(tax.names1$classification_path_ranks[i],"|",fixed=T))
-                    #class.path1<-unlist(strsplit(tax.names1$classification_path_ranks[n],"|",fixed=T))
-                    #new1<-which(is.na(match(class.path,template)))
-                    #new.class.path1<-c(class.path1[1:(new1[1]-1)],template1[length(template1)],class.path1[new1])
-                    
-                    #tax.names1[n,c(7,8,9)]<-c(new.class.path,
-                    #                          new.class.path1,
-                    #                          NA)
-                  }
-                }
-              }
+              resolved<-T
+              suppressWarnings(rm(temp2,temp2.1,temp2.2,higher.two.tax1,higher.shared.rank,higher.two.rank1,other.i,template,class.path,new,
+                                  new.class.path,template1,class.path1,new1,new.class.path1))
+            } else {
+              #Only 1 taxa found in supplied database, or more than 2 matches found
             }
           }
         } else if (!all(tax.names==two.tax[1],tax.names==two.tax[2])) {#If there are no other taxa in the pair in the dataset, just pick one and use it
-          temp1<-resolve(two.tax,with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=3,fields="all")
-          if(nrow(temp1$gnr)>=1) {
-            if(!any(grepl("Animalia|Bilateria",temp1$gnr$classification_path))){
-              temp1<-resolve(two.tax,with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=3,fields="all")
-              if (any(grepl("Animalia|Bilateria",temp1$gnr$classification_path))){
-                tax.names1[i,]<-temp1$gnr[which(grepl("Animalia|Bilateria",temp1$gnr$classification_path))[1],]
-              } 
-            } else {
-              tax.names1[i,]<-temp1$gnr[1,]
-            }
-          } else {
-            if (use.NCBI) {
-              temp1<-resolve(two.tax,with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=4,fields="all")
-              if(nrow(temp1$gnr)>=1) {
-                if(!any(grepl("Bilateria",temp1$gnr$classification_path))){
-                  temp1<-resolve(two.tax,with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=4,fields="all")
-                  if (any(grepl("Bilateria",temp1$gnr$classification_path))){
-                    tax.names1[i,]<-temp1$gnr[which(grepl("Bilateria",temp1$gnr$classification_path))[1],]
-                  } 
-                } else {
-                  tax.names1[i,]<-temp1$gnr[1,]
-                }
+          for (n in gnrDB){
+            if (!is.na(tax.names1[i,1])) next
+            temp1<-resolve(tax.names[i],with_canonical_ranks=T,with_context = T,best_match_only=T,preferred_data_sources=n,fields="all")
+            if(nrow(temp1$gnr)>0) { #If 1 match
+              if(!grepl("Animalia|Bilateria",temp1$gnr$classification_path)){  #make sure its an animal (some plants or fungi have identical names as some animals)
+                temp1<-resolve(tax.names[i],with_canonical_ranks=T,with_context = T,best_match_only=F,preferred_data_sources=3,fields="all")
+                if (any(grepl("Animalia|Bilateria",temp1$gnr$classification_path))){ #This will select the one that is an animal
+                  tax.names1[i,]<-temp1$gnr[which(grepl("Animalia|Bilateria",temp1$gnr$classification_path))[1],]
+                } 
+              } else {
+                tax.names1[i,]<-temp1$gnr[1,]
               }
             }
+            rm(temp1)
           }
-        } else {#If only 1 other taxa in the pair is present in the dataset
-          
-        }
-        
+        } 
       }
     }
   }
   
-  if (oligo.hairs){
+  if (oligoHairs){
     #browser()
     hair<-grep("hair|chaetae|Hair|Chaetae",tax.names1$user_supplied_name)
     if (length(hair)>0){
@@ -429,6 +263,7 @@ benth.taxnames<- function(x,
     l.out[[i]]<-template
     names(l.out)[i]<-tax.names1$matched_name2[i]
   }
+  
   if (any(is.na(tax.names1$user_supplied_name))){
     tax.names1$user_supplied_name[is.na(tax.names1$user_supplied_name)]<-row.names(tax.names1)[is.na(tax.names1$user_supplied_name)]
   }
@@ -445,9 +280,9 @@ benth.taxnames<- function(x,
   mis.match<-mis.match[mis.match$matched_name2!="NA",]
   if (nrow(mis.match)>0)   rownames(mis.match)<-1:nrow(mis.match)
   
-  if (use.NCBI){
+  if (length(gnrDB)>1){
     multi.source<-tax.names1[,colnames(tax.names1)%in%c("user_supplied_name","matched_name2","data_source_title")]
-    multi.source<-multi.source[tax.names1$data_source_title!="ITIS"&!is.na(tax.names1$data_source_title),]
+    multi.source<-multi.source[tax.names1$data_source_title!=gnr_datasources()$title[gnrDB[1]]&!is.na(tax.names1$data_source_title),]
   } else {
     multi.source<-matrix(ncol=0,nrow=0)
   }
@@ -469,7 +304,7 @@ benth.taxnames<- function(x,
     message("try setting use.NCBI=TRUE in benth.taxnames()")
     message("")
   }
-  if (use.NCBI & nrow(multi.source)>0){
+  if (length(gnrDB)>1 & nrow(multi.source)>0){
     message("")
     message("The following taxa could not be matched in ITIS:")
     print(data.frame(multi.source))
@@ -492,9 +327,9 @@ benth.taxnames<- function(x,
     message("")
   }
   
-  if (write.output){
-    saveRDS(l.out,file=paste0(Sys.Date(),"_tax_names(IMPORTANT).rds"))
-  }
+  # if (write.output){
+  #   saveRDS(l.out,file=paste0(Sys.Date(),"_tax_names(IMPORTANT).rds"))
+  # }
   
   return(l.out)
 }
@@ -535,34 +370,38 @@ mod.taxnames<-function(taxon,replacement,benth.taxnames) {
 #
 ########################################################
 
-higher.taxa<-function(x){
+higher.taxa<-function(x,taxonomy=NA){
   l.out<-x
   tax.names1<-attr(x,"Name_match")
   tax.final <- l.out
-  tax.full1 <-
-    c(
-      "kingdom",
-      "subkingdom",
-      "infrakingdom",
-      "superphylum",
-      "phylum",
-      "subphylum",
-      "class",
-      "subclass",
-      "infraclass",
-      "superorder",
-      "order",
-      "suborder",
-      "infraorder",
-      "superfamily",
-      "family",
-      "subfamily",
-      "tribe",
-      "genus",
-      "subgenus",
-      "species",
-      "subspecies"
-    )
+  if (!is.na(taxonomy)) {
+    tax.full1 <- taxonomy
+  } else {
+    tax.full1 <-
+      c(
+        "kingdom",
+        "subkingdom",
+        "infrakingdom",
+        "superphylum",
+        "phylum",
+        "subphylum",
+        "class",
+        "subclass",
+        "infraclass",
+        "superorder",
+        "order",
+        "suborder",
+        "infraorder",
+        "superfamily",
+        "family",
+        "subfamily",
+        "tribe",
+        "genus",
+        "subgenus",
+        "species",
+        "subspecies"
+      )
+  }
   
   if (any(!grepl(paste0(tax.full1,collapse="|"),unique(unlist(lapply(l.out, "[[", 2)))))){
     numb.miss<-unique(unlist(lapply(l.out, "[[", 2)))[which(!grepl(paste0(tax.full1,collapse="|"),unique(unlist(lapply(l.out, "[[", 2)))))]
@@ -625,7 +464,7 @@ benth.taxroll<-function(taxa, #taxa by site matrix
                         CABIN.taxa=F
 ) {
   if (!require(plyr,quietly = T)) install.packages('plyr')
-  #require(plyr,quietly = T)
+  require(plyr,quietly = T)
   
   if (!require(taxize,quietly = T)) install.packages('taxize')
   require(taxize,quietly = T)
@@ -750,7 +589,7 @@ benth.taxroll<-function(taxa, #taxa by site matrix
       tax.full1<-append(tax.full1,has.artif[2],which(match(tax.full1,has.artif,nomatch=0)==1))
     }
   }
-
+  
   tax.full1 <-
     tax.full1[tax.full1 %in% as.character(unique(unlist(lapply(tax.final, "[[", 2), use.names =
                                                           F)))]
@@ -1137,7 +976,7 @@ benth.taxroll<-function(taxa, #taxa by site matrix
     l.out[[i]]<-template
     names(l.out)[i]<-fam.tax$matched_name2[i]
   }
-
+  
   fam.mat.out <- matrix(nrow = nrow(dat.fam), ncol = length(tax.full1[-c((which(tax.full1=="family")+1):length(tax.full1))]))
   colnames(fam.mat.out) <- tax.full1[-c((which(tax.full1=="family")+1):length(tax.full1))]
   fam.mat.out<-fam.mat.out[,!colnames(fam.mat.out)%in%c("kingdom","subkingdom","infrakingdom","superphylum","infraclass","superorder","infraorder","superfamily")]
@@ -1200,8 +1039,8 @@ benth.taxroll<-function(taxa, #taxa by site matrix
 ########################################################
 
 benth.rolldown<-function(taxa, #taxa by site matrix
-                        taxa.names=NA, #output of benth.taxnames
-                        CABIN.taxa=F
+                         taxa.names=NA, #output of benth.taxnames
+                         CABIN.taxa=F
 ) {
   if (!require(plyr,quietly = T)) install.packages('plyr')
   #require(plyr,quietly = T)
@@ -1317,7 +1156,7 @@ benth.rolldown<-function(taxa, #taxa by site matrix
       "species",
       "subspecies"
     )
-
+  
   if (any(!grepl(paste0(tax.full1,collapse="|"),unique(unlist(lapply(tax, "[[", 2)))))){
     numb.miss<-unique(unlist(lapply(tax, "[[", 2)))[which(!grepl(paste0(tax.full1,collapse="|"),unique(unlist(lapply(tax, "[[", 2)))))]
     for(i in numb.miss){
@@ -1333,7 +1172,7 @@ benth.rolldown<-function(taxa, #taxa by site matrix
     tax.full1[tax.full1 %in% as.character(unique(unlist(lapply(tax.final, "[[", 2), use.names =
                                                           F)))]
   message("Starting taxa redundnacy screen:")
-
+  
   for (i in tax.full) {
     #browser()
     
@@ -1472,12 +1311,12 @@ benth.rolldown<-function(taxa, #taxa by site matrix
   for (x in 1:length(l.out)){
     fam.tax.out[x,colnames(fam.tax.out)%in%l.out[[x]][,'rank']]<-l.out[[x]][l.out[[x]][,'rank']%in%colnames(fam.tax.out),'name']
   }
-
+  
   out$lpl.taxonomy<-apply(lpl.tax.out,1,paste0,collapse=";")
   out$lpl.taxonomy<-gsub("NA","",out$lpl.taxonomy)
   out$fam.taxonomy<-apply(fam.tax.out,1,paste0,collapse=";")
   out$fam.taxonomy<-gsub("NA","",out$fam.taxonomy)
-
+  
   class(out)<-"benth.rolldown"
   return(out)
 }
@@ -1651,7 +1490,7 @@ benth.rollup<-function(taxa, #taxa by site matrix
         )
         next
       }
-
+      
       at.and.below.n <-
         c(over.n$name[nrow(over.n)], names(other.at.n))
       abund.at.n <-
@@ -1840,7 +1679,7 @@ benth.endpoint<-function(x){
   
   fam.out<-t(fam.mat)
   colnames(fam.out)<-x$fam.taxonomy
-
+  
   lpl.out<-t(lpl.mat)
   colnames(lpl.out)<-x$lpl.taxonomy
   
@@ -1968,7 +1807,7 @@ benth.bray<-function(ref,test,data){
   
   if (!require(vegan,quietly = T)) install.packages('vegan')
   require(vegan,quietly = T)
-
+  
   site.class<-data.frame(cbind(c(ref,test),c(rep("ref",length(ref)),rep("test",length(test)))),stringsAsFactors = F)
   
   ref.taxa<-apply(data[,colnames(data)%in%ref],1,median)
@@ -2040,7 +1879,7 @@ benth.summaries<-function(benth.endpoint,stations,taxa.summary,abund.thresh=NA) 
       s<-sum(lpl.mat[,i])
       lpl.mat[,i]<-lpl.mat[,i]/s
     }
-
+    
     fam.mat<-fam.mat[order(rowSums(fam.mat),decreasing = T),]
     lpl.mat<-lpl.mat[order(rowSums(lpl.mat),decreasing = T),]
     
@@ -2094,7 +1933,7 @@ benth.summaries<-function(benth.endpoint,stations,taxa.summary,abund.thresh=NA) 
       lpl.mat.c<-lpl.mat.c[rownames(lpl.mat.c)%in%colnames(lpl.mat),]
       fam.mat.c<-fam.mat.c[rownames(fam.mat.c)%in%colnames(fam.mat),]
     }
-
+    
     fam.mat.c<-fam.mat.c[order(rowSums(fam.mat.c),decreasing = T),]
     lpl.mat.c<-lpl.mat.c[order(rowSums(lpl.mat.c),decreasing = T),]
     
@@ -2184,11 +2023,11 @@ twogroup_comparision<-function(ref,test,data,alpha=0.1){
       if (dat1$var[which.max(dat1$norm)]>0.05) {
         out$Test[out$Endpoint==i]<-"T-equal"
         out$'P-value'[out$Endpoint==i]<-t.test(transform(site.class[,i],out$Transformation[out$Endpoint==i])~as.factor(site.class$Area),
-                                             var.equal=T)$p.value
+                                               var.equal=T)$p.value
       } else {
         out$Test[out$Endpoint==i]<-"T-unequal"
         out$'P-value'[out$Endpoint==i]<-t.test(transform(site.class[,i],out$Transformation[out$Endpoint==i])~as.factor(site.class$Area),
-                                             var.equal=F)$p.value
+                                               var.equal=F)$p.value
       }
       #browser()
       n<-length(which(site.class$Area=="ref"))
@@ -2200,11 +2039,11 @@ twogroup_comparision<-function(ref,test,data,alpha=0.1){
       out$Reference_Mean[out$Endpoint==i]<-mean(site.class[site.class$Area=="ref",i],na.rm=T)
       out$Exposure_Mean[out$Endpoint==i]<-mean(site.class[site.class$Area=="exp",i],na.rm=T)
       out$Observed_ES[out$Endpoint==i]<-((transform(out$Exposure_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i])-
-                                           transform(out$Reference_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i]))/
-        sd)
-      out$Observed_percent[out$Endpoint==i]<-((transform(out$Exposure_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i])-
                                             transform(out$Reference_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i]))/
-                                           transform(out$Reference_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i]))
+                                           sd)
+      out$Observed_percent[out$Endpoint==i]<-((transform(out$Exposure_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i])-
+                                                 transform(out$Reference_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i]))/
+                                                transform(out$Reference_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i]))
       
       #browser()
       
@@ -2218,11 +2057,11 @@ twogroup_comparision<-function(ref,test,data,alpha=0.1){
       out$Exposure_Mean[out$Endpoint==i]<-median(site.class[site.class$Area=="exp",i],na.rm=T)
       out$Observed_ES[out$Endpoint==i]<-(median(site.class[site.class$Area=="exp",i],na.rm=T)-
                                            median(site.class[site.class$Area=="ref",i],na.rm=T))/
-                                           mad(site.class[,i],na.rm=T)
+        mad(site.class[,i],na.rm=T)
       
       out$Observed_percent[out$Endpoint==i]<-(median(site.class[site.class$Area=="exp",i],na.rm=T)-
-                                                 median(site.class[site.class$Area=="ref",i],na.rm=T))/
-                                                median(site.class[site.class$Area=="ref",i],na.rm=T)
+                                                median(site.class[site.class$Area=="ref",i],na.rm=T))/
+        median(site.class[site.class$Area=="ref",i],na.rm=T)
     }
   }
   #browser()
