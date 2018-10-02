@@ -39,7 +39,7 @@ benth.taxnames<- function(x,
   if (!require(taxize,quietly = T)) install.packages('taxize')
   require(taxize,quietly = T)
   
-  x<-c("Simuliidae","Prosimulium mixum","Helodon","Simulium sp.", "Prosimulium/Helodon", "Trichoptera","Trichoptera/Plecoptera")
+  #x<-c("Simuliidae","Prosimulium mixum","Helodon","Simulium sp.", "Prosimulium/Helodon", "Trichoptera","Trichoptera/Plecoptera")
   
   x<-as.character(x)
   
@@ -68,7 +68,7 @@ benth.taxnames<- function(x,
          tax.names)
   
   tax.names <-
-    gsub(" spp| group| complex| grp| grp|larvae|Larvae|(larvae)|(Larvae)
+    gsub(" spp| group| complex| grp|larvae|Larvae|(larvae)|(Larvae)
          |adult|Adult|(adult)|(Adult)
          |immature|Immature|(immature)|(Immature)|
          indet|Indet|pupae|Pupae",
@@ -76,7 +76,7 @@ benth.taxnames<- function(x,
          tax.names,
          fixed = F)
   
-  taxa.groups<-tax.names.orig[grepl(" group| complex| grp| grp.| spp.",tax.names.orig)]
+  taxa.groups<-tax.names.orig[grepl(" group| complex| grp| spp",tax.names.orig)]
   taxa.slash<-tax.names.orig[grepl("/",tax.names.orig)]
   
   tax.names <- gsub(" sp.", "", tax.names, fixed = T)
@@ -126,7 +126,7 @@ benth.taxnames<- function(x,
   
   #colnames(tax.names1)<-colnames(temp1$gnr)
   #browser()
-  tax.names1$matched_name2[tax.names1$matched_name2!=tax.names1$submitted_name]<-NA #IS THIS CORRECT?
+  #tax.names1$matched_name2[tax.names1$matched_name2!=tax.names1$submitted_name]<-NA #IS THIS CORRECT?
   
   # b. Check any taxa that could not be matched UNIQUELY in ITIS
   if (any(is.na(tax.names1$matched_name2))){
@@ -301,7 +301,7 @@ benth.taxnames<- function(x,
     message("The following taxa could not be matched:")
     print(data.frame(no.match))
     message("Please manually supply the information with mod.taxnames(), or")
-    message("try setting use.NCBI=TRUE in benth.taxnames()")
+    message("try using additional datasources from gnr_datasources()")
     message("")
   }
   if (length(gnrDB)>1 & nrow(multi.source)>0){
@@ -315,8 +315,7 @@ benth.taxnames<- function(x,
     message("")
     message("Input data contains '/' taxa:")
     print(data.frame(taxa.slash))
-    message("Please review these taxa")
-    message("Functional traits (feeding and habitat) may not properly be calculated for these taxa")
+    message("Please review these taxa for potential redundancy")
     message("")
   }
   if (length(taxa.groups)>0){
@@ -355,7 +354,7 @@ mod.taxnames<-function(taxon,replacement,benth.taxnames) {
   Names_match$classification_path_ids[match(taxon,names(benth.taxnames))]<-unlist(lapply(replacement,function(x)paste0(x[,3],collapse = "|")))
   Names_match$taxon_id[match(taxon,names(benth.taxnames))]<-unlist(lapply(replacement,function(x) x[nrow(x),3]))
   Names_match$matched_name2[match(taxon,names(benth.taxnames))]<-unlist(lapply(replacement,function(x) x[nrow(x),1]))
-  Names_match$data_source_title[match(taxon,names(benth.taxnames))]<-"Manual override"
+  Names_match$data_source_title[match(taxon,names(benth.taxnames))]<-"User Entered"
   Names_match$data_source_id[match(taxon,names(benth.taxnames))]<-"NA"
   rownames(Names_match)[match(taxon,names(benth.taxnames))]<-unlist(lapply(replacement,function(x) x[nrow(x),1]))
   
@@ -460,8 +459,7 @@ benth.taxroll<-function(taxa, #taxa by site matrix
                         Criteria3.percent=0.2, #critical limit for criteria 3
                         Criteria5a.percent=0.5, #critical limit for criteria 5a
                         Criteria5b.numb=2, #critical limit for criteria 5b
-                        output.taxonomy=T, #add full taxonomy to output matricesS
-                        CABIN.taxa=F
+                        output.taxonomy=T #add full taxonomy to output matricesS
 ) {
   if (!require(plyr,quietly = T)) install.packages('plyr')
   require(plyr,quietly = T)
@@ -471,9 +469,7 @@ benth.taxroll<-function(taxa, #taxa by site matrix
   
   if (!is.data.frame(taxa)) stop("taxa must be a data frame")
   if (!all(apply(taxa[,-c(1)],2,is.numeric)))  stop("taxa can only contain numberic values past row 1")
-  
-  CABIN.omit.taxa<-c("Cladocera","Rotifera","Copepoda","Ostracoda","Nematoda","Porifera","Platyhelminthes")
-  
+
   taxa[,1]<-as.character(taxa[,1])
   
   if(class(taxa.names)!="benth.taxnames"){
@@ -999,22 +995,6 @@ benth.taxroll<-function(taxa, #taxa by site matrix
   fam.tax.out<-apply(fam.tax,1,paste0,collapse=";")
   fam.tax.out<-gsub("NA","",fam.tax.out)
   
-  if (CABIN.taxa){
-    lpl.omits<-grepl(paste0(CABIN.omit.taxa,collapse="|"),lpl.tax.out)
-    fam.omits<-grepl(paste0(CABIN.omit.taxa,collapse="|"),fam.tax.out)
-    
-    lpl.tax.out<-lpl.tax.out[!lpl.omits]
-    fam.tax.out<-fam.tax.out[!fam.omits]
-    
-    dat.out<-dat.out[!lpl.omits,]
-    dat.fam<-dat.fam[!fam.omits,]
-    
-    decision.omits<-sapply(attr(taxa.names,"Name_match")$classification_path,function(x) any(grepl(paste0(CABIN.omit.taxa,collapse="|"),x)))
-    decisions.out[decision.omits,grepl("Decision",colnames(decisions.out))]<-""
-    decisions.out[decision.omits,grepl("Decision",colnames(decisions.out))[1]]<-"CABIN excluded taxa"
-    
-  }
-  
   out<-list()
   out$lpl.matrix<-dat.out
   out$fam.matrix<-dat.fam
@@ -1039,8 +1019,7 @@ benth.taxroll<-function(taxa, #taxa by site matrix
 ########################################################
 
 benth.rolldown<-function(taxa, #taxa by site matrix
-                         taxa.names=NA, #output of benth.taxnames
-                         CABIN.taxa=F
+                         taxa.names=NA #output of benth.taxnames
 ) {
   if (!require(plyr,quietly = T)) install.packages('plyr')
   #require(plyr,quietly = T)
@@ -1264,12 +1243,6 @@ benth.rolldown<-function(taxa, #taxa by site matrix
     }
   }
   
-  
-  if (CABIN.taxa){
-    dat.out<-dat.out[!lpl.omits,]
-    dat.fam<-dat.fam[!fam.omits,]
-  }
-  
   out<-list()
   out$lpl.matrix<-dat.out
   out$fam.matrix<-dat.fam
@@ -1329,8 +1302,7 @@ benth.rolldown<-function(taxa, #taxa by site matrix
 
 benth.rollup<-function(taxa, #taxa by site matrix
                        taxa.names=NA, #output of benth.taxnames
-                       roll.thresh=0.2, #threshold for rolling up taxa
-                       CABIN.taxa=F
+                       roll.thresh=0.2 #threshold for rolling up taxa
 ) {
   if (!require(plyr,quietly = T)) install.packages('plyr')
   #require(plyr,quietly = T)
@@ -1546,12 +1518,6 @@ benth.rollup<-function(taxa, #taxa by site matrix
     }
   }
   
-  
-  if (CABIN.taxa){
-    dat.out<-dat.out[!lpl.omits,]
-    dat.fam<-dat.fam[!fam.omits,]
-  }
-  
   out<-list()
   out$lpl.matrix<-dat.out
   out$fam.matrix<-dat.fam
@@ -1601,493 +1567,6 @@ benth.rollup<-function(taxa, #taxa by site matrix
   
   class(out)<-"benth.rollup"
   return(out)
-}
-
-
-########################################################
-#Function to calculate benthic endpoints
-#
-#
-########################################################
-
-benth.endpoint<-function(x){
-  if (!any(class(x)=="benth.taxroll",class(x)=="benth.rolldown",class(x)=="benth.rollup")) stop("Input dataset must be an output from benth.taxroll(), benth.rolldown() or benth.rollup()")
-  
-  if (!require(vegan,quietly = T)) install.packages('vegan')
-  require(vegan,quietly = T)
-  
-  if (!require(BenthicAnalysistesting,quietly = T)) {
-    install.packages('devtools')
-    devtools::install_github('p-schaefer/BenthicAnalysistesting')
-  }
-  require(BenthicAnalysistesting,quietly = T,warn.conflicts=F)
-  
-  #browser()
-  fam.mat<-x$fam.matrix
-  lpl.mat<-x$lpl.matrix
-  
-  endpoint.out <- matrix(nrow = ncol(lpl.mat), ncol = 42)
-  rownames(endpoint.out) <- colnames(lpl.mat)
-  colnames(endpoint.out) <-
-    c(
-      "Richness",
-      "Rarefied_Richness",
-      "Abundance",
-      "Perc_Dominance",
-      "Simpsons_Diversity",
-      "InvSimpsons_Diversity",
-      "Shannons_Diversity",
-      "Pielous_Evenness",
-      "Simpsons_Dominance",
-      "Simpsons_Eveness",
-      "EPT_Rich",
-      "EPT_Perc",
-      "Eph_Rich",
-      "Eph_Perc",
-      "Tric_Rich",
-      "Tric_Perc",
-      "Plec_Rich",
-      "Plec_Perc",
-      "Chiron_Perc",
-      "Oligo_Perc",
-      "Dipt_Rich",
-      "Dipt_Perc",
-      "HBI",
-      "CEFI",
-      "Shredder_Perc",
-      "Shredder_Rich",
-      "Filterer_Perc",
-      "Filterer_Rich",
-      "Predator_Perc",
-      "Predator_Rich",
-      "CollGath_Perc",
-      "CollGath_Rich",
-      "ScrapGraz_Perc",
-      "ScrapGraz_Rich",
-      "Swimmer_Perc",
-      "Swimmer_Rich",
-      "Clinger_Perc",
-      "Clinger_Rich",
-      "Sprawler_Perc",
-      "Sprawler_Rich",
-      "Climber_Perc",
-      "Climber_Rich"
-    )
-  
-  endpoint.out.fam<-data.frame(endpoint.out)
-  endpoint.out.lpl<-data.frame(endpoint.out)
-  
-  fam.out<-t(fam.mat)
-  colnames(fam.out)<-x$fam.taxonomy
-  
-  lpl.out<-t(lpl.mat)
-  colnames(lpl.out)<-x$lpl.taxonomy
-  
-  lpl.BA.out<-BenthicAnalysistesting::benth.metUI(x=lpl.out)
-  fam.BA.out<-BenthicAnalysistesting::benth.metUI(x=fam.out)
-  
-  endpoint.out.lpl[,1:10]<-
-    data.frame(cbind(vegan::specnumber(lpl.out),
-                     vegan::rarefy(ceiling(lpl.out),min(rowSums(lpl.out))),
-                     rowSums(lpl.out),
-                     apply(lpl.out,1,max)/rowSums(lpl.out),
-                     vegan::diversity(lpl.out,index="simpson"),
-                     vegan::diversity(lpl.out,index="invsimpson"),
-                     vegan::diversity(lpl.out,index="shannon"),
-                     vegan::diversity(lpl.out,index="shannon")/log(vegan::specnumber(lpl.out)),
-                     1/vegan::diversity(lpl.out,index="simpson"),
-                     (vegan::diversity(lpl.out,index="invsimpson"))/vegan::specnumber(lpl.out)
-    ))
-  
-  endpoint.out.fam[,1:10]<-
-    data.frame(cbind(vegan::specnumber(fam.out),
-                     vegan::rarefy(ceiling(fam.out),min(rowSums(fam.out))),
-                     rowSums(fam.out),
-                     apply(fam.out,1,max)/rowSums(fam.out),
-                     vegan::diversity(fam.out,index="simpson"),
-                     vegan::diversity(fam.out,index="invsimpson"),
-                     vegan::diversity(fam.out,index="shannon"),
-                     vegan::diversity(fam.out,index="shannon")/log(vegan::specnumber(fam.out)),
-                     1/vegan::diversity(fam.out,index="simpson"),
-                     (vegan::diversity(fam.out,index="invsimpson"))/vegan::specnumber(fam.out)
-                     
-    ))
-  
-  endpoint.out.lpl$EPT_Rich <-lpl.BA.out$Summary.Metrics$EPT.Richness
-  endpoint.out.lpl$EPT_Perc <-fam.BA.out$Summary.Metrics$Percent.EPT
-  endpoint.out.lpl$Eph_Rich <-lpl.BA.out$Summary.Metrics$Ephem.Richness
-  endpoint.out.lpl$Eph_Perc <-fam.BA.out$Summary.Metrics$Percent.Ephem
-  endpoint.out.lpl$Tric_Rich <-lpl.BA.out$Summary.Metrics$Trich.Richness
-  endpoint.out.lpl$Tric_Perc <-fam.BA.out$Summary.Metrics$Percent.Trich
-  endpoint.out.lpl$Plec_Rich <-lpl.BA.out$Summary.Metrics$Plec.Richness
-  endpoint.out.lpl$Plec_Perc <-fam.BA.out$Summary.Metrics$Percent.Plec
-  endpoint.out.lpl$Dipt_Rich <- lpl.BA.out$Summary.Metrics$Dipt.Richness
-  endpoint.out.lpl$Dipt_Perc <- fam.BA.out$Summary.Metrics$Percent.Dipt
-  endpoint.out.lpl$Chiron_Perc <-lpl.BA.out$Summary.Metrics$Percent.Chironomidae
-  endpoint.out.lpl$Oligo_Perc <-lpl.BA.out$Summary.Metrics$Percent.Oligochaeta
-  endpoint.out.lpl$HBI <-lpl.BA.out$Summary.Metrics$HBI
-  endpoint.out.lpl$CEFI <-lpl.BA.out$Summary.Metrics$CEFI
-  endpoint.out.lpl$Shredder_Perc<-lpl.BA.out$Summary.Metrics$Shredder.Percent
-  endpoint.out.lpl$Shredder_Rich<-lpl.BA.out$Summary.Metrics$Shredder.Richness
-  endpoint.out.lpl$Filterer_Perc<-lpl.BA.out$Summary.Metrics$Filterer.Percent
-  endpoint.out.lpl$Filterer_Rich<-lpl.BA.out$Summary.Metrics$Filterer.Richness
-  endpoint.out.lpl$Predator_Perc<-lpl.BA.out$Summary.Metrics$Predator.Percent
-  endpoint.out.lpl$Predator_Rich<-lpl.BA.out$Summary.Metrics$Predator.Richness
-  endpoint.out.lpl$CollGath_Perc<-lpl.BA.out$Summary.Metrics$Gatherer.Percent
-  endpoint.out.lpl$CollGath_Rich<-lpl.BA.out$Summary.Metrics$Gatherer.Richness
-  endpoint.out.lpl$ScrapGraz_Perc<-lpl.BA.out$Summary.Metrics$ScraperGrazer.Percent
-  endpoint.out.lpl$ScrapGraz_Rich<-lpl.BA.out$Summary.Metrics$ScraperGrazer.Richness
-  endpoint.out.lpl$Swimmer_Perc<-lpl.BA.out$Summary.Metrics$Swimmer.Percent
-  endpoint.out.lpl$Swimmer_Rich<-lpl.BA.out$Summary.Metrics$Swimmer.Richness
-  endpoint.out.lpl$Clinger_Perc<-lpl.BA.out$Summary.Metrics$Clinger.Percent
-  endpoint.out.lpl$Clinger_Rich<-lpl.BA.out$Summary.Metrics$Clinger.Richness
-  endpoint.out.lpl$Sprawler_Perc<-lpl.BA.out$Summary.Metrics$Sprawler.Percent
-  endpoint.out.lpl$Sprawler_Rich<-lpl.BA.out$Summary.Metrics$Sprawler.Richness
-  endpoint.out.lpl$Climber_Perc<-lpl.BA.out$Summary.Metrics$Clinger.Percent
-  endpoint.out.lpl$Climber_Rich<-lpl.BA.out$Summary.Metrics$Clinger.Richness
-  
-  endpoint.out.fam$EPT_Rich <-fam.BA.out$Summary.Metrics$EPT.Richness
-  endpoint.out.fam$EPT_Perc <-fam.BA.out$Summary.Metrics$Percent.EPT
-  endpoint.out.fam$Eph_Rich <-fam.BA.out$Summary.Metrics$Ephem.Richness
-  endpoint.out.fam$Eph_Perc <-fam.BA.out$Summary.Metrics$Percent.Ephem
-  endpoint.out.fam$Tric_Rich <-fam.BA.out$Summary.Metrics$Trich.Richness
-  endpoint.out.fam$Tric_Perc <-fam.BA.out$Summary.Metrics$Percent.Trich
-  endpoint.out.fam$Plec_Rich <-fam.BA.out$Summary.Metrics$Plec.Richness
-  endpoint.out.fam$Plec_Perc <-fam.BA.out$Summary.Metrics$Percent.Plec
-  endpoint.out.fam$Dipt_Rich <- fam.BA.out$Summary.Metrics$Dipt.Richness
-  endpoint.out.fam$Dipt_Perc <- fam.BA.out$Summary.Metrics$Percent.Dipt
-  endpoint.out.fam$Chiron_Perc <-fam.BA.out$Summary.Metrics$Percent.Chironomidae
-  endpoint.out.fam$Oligo_Perc <-fam.BA.out$Summary.Metrics$Percent.Oligochaeta
-  endpoint.out.fam$HBI <-fam.BA.out$Summary.Metrics$HBI
-  endpoint.out.fam$CEFI <-fam.BA.out$Summary.Metrics$CEFI
-  endpoint.out.fam$Shredder_Perc<-fam.BA.out$Summary.Metrics$Shredder.Percent
-  endpoint.out.fam$Shredder_Rich<-fam.BA.out$Summary.Metrics$Shredder.Richness
-  endpoint.out.fam$Filterer_Perc<-fam.BA.out$Summary.Metrics$Filterer.Percent
-  endpoint.out.fam$Filterer_Rich<-fam.BA.out$Summary.Metrics$Filterer.Richness
-  endpoint.out.fam$Predator_Perc<-fam.BA.out$Summary.Metrics$Predator.Percent
-  endpoint.out.fam$Predator_Rich<-fam.BA.out$Summary.Metrics$Predator.Richness
-  endpoint.out.fam$CollGath_Perc<-fam.BA.out$Summary.Metrics$Gatherer.Percent
-  endpoint.out.fam$CollGath_Rich<-fam.BA.out$Summary.Metrics$Gatherer.Richness
-  endpoint.out.fam$ScrapGraz_Perc<-fam.BA.out$Summary.Metrics$ScraperGrazer.Percent
-  endpoint.out.fam$ScrapGraz_Rich<-fam.BA.out$Summary.Metrics$ScraperGrazer.Richness
-  endpoint.out.fam$Swimmer_Perc<-fam.BA.out$Summary.Metrics$Swimmer.Percent
-  endpoint.out.fam$Swimmer_Rich<-fam.BA.out$Summary.Metrics$Swimmer.Percent
-  endpoint.out.fam$Clinger_Perc<-fam.BA.out$Summary.Metrics$Clinger.Percent
-  endpoint.out.fam$Clinger_Rich<-fam.BA.out$Summary.Metrics$Clinger.Richness
-  endpoint.out.fam$Sprawler_Perc<-fam.BA.out$Summary.Metrics$Sprawler.Percent
-  endpoint.out.fam$Sprawler_Rich<-fam.BA.out$Summary.Metrics$Sprawler.Richness
-  endpoint.out.fam$Climber_Perc<-fam.BA.out$Summary.Metrics$Clinger.Percent
-  endpoint.out.fam$Climber_Rich<-fam.BA.out$Summary.Metrics$Clinger.Richness
-  
-  out<-list()
-  #browser()
-  out$lpl.endpoints<-endpoint.out.lpl
-  out$fam.endpoints<-endpoint.out.fam
-  out$lpl.attributes<-lpl.BA.out$Attributes
-  out$fam.attributes<-fam.BA.out$Attributes
-  out$fam.mat<-fam.mat
-  out$lpl.mat<-lpl.mat
-  
-  return(out)
-}
-
-########################################################
-#Function to calculate Bray-Curtis distances
-#
-#
-########################################################
-
-benth.bray<-function(ref,test,data){
-  #browser()
-  #if(any(!test%in%colnames(data)))stop("one or more test sites is not in column names of data")
-  #if(any(!ref%in%colnames(data)))stop("one or more reference sites is not in column names of data")
-  
-  ref<-colnames(data)[grepl(paste0(ref,collapse = "|"),colnames(data))]
-  test<-colnames(data)[grepl(paste0(test,collapse = "|"),colnames(data))]
-  
-  if (!require(vegan,quietly = T)) install.packages('vegan')
-  require(vegan,quietly = T)
-  
-  site.class<-data.frame(cbind(c(ref,test),c(rep("ref",length(ref)),rep("test",length(test)))),stringsAsFactors = F)
-  
-  ref.taxa<-apply(data[,colnames(data)%in%ref],1,median)
-  
-  bc.out<-cbind(ref.taxa,data[,colnames(data)%in%ref],data[,colnames(data)%in%test])
-  bc.out<-as.matrix(vegdist(t(bc.out),method="bray"))[-c(1),1]
-  site.class<-cbind(site.class,bc.out)
-  colnames(site.class)<-c("Site","Class","Bray-Curtis")
-  
-  return(site.class)
-}
-
-########################################################
-#Function to calculate data summaries
-#
-#
-########################################################
-
-benth.summaries<-function(benth.endpoint,stations,taxa.summary,abund.thresh=NA) {
-  if (!require(reshape2,quietly = T)) install.packages('reshape2')
-  require(reshape2,quietly = T)
-  
-  if (!require(plyr,quietly = T)) install.packages('plyr')
-  require(plyr,quietly = T)
-  
-  for (i in stations){
-    benth.endpoint$lpl.endpoints$stations[grep(i,rownames(benth.endpoint$lpl.endpoints))]<-i
-    benth.endpoint$fam.endpoints$stations[grep(i,rownames(benth.endpoint$fam.endpoints))]<-i
-  }
-  
-  melted.lpl <- melt(benth.endpoint$lpl.endpoints, id.vars=c("stations"))
-  melted.fam <- melt(benth.endpoint$fam.endpoints, id.vars=c("stations"))
-  
-  lpl.summ<-ddply(melted.lpl, c("variable","stations"), summarise,
-                  n=length(value[!is.na(value)]),
-                  min=min(value,na.rm=T),
-                  mean = mean(value,na.rm=T),
-                  median=median(value,na.rm=T),
-                  max=max(value,na.rm=T),
-                  sd = sd(value,na.rm=T),
-                  se = sd(value,na.rm=T)/sqrt(length(value[!is.na(value)])))
-  fam.summ<-ddply(melted.fam, c( "variable","stations"), summarise,
-                  n=length(value[!is.na(value)]),
-                  min=min(value,na.rm=T),
-                  mean = mean(value,na.rm=T),
-                  median=median(value,na.rm=T),
-                  max=max(value,na.rm=T),
-                  sd = sd(value,na.rm=T),
-                  se = sd(value,na.rm=T)/sqrt(length(value[!is.na(value)])))
-  
-  lpl.summ[,-c(1:3)]<-round(lpl.summ[,-c(1:3)],digits=3)
-  fam.summ[,-c(1:3)]<-round(fam.summ[,-c(1:3)],digits=3)
-  
-  out<-list()
-  out$lpl.summary<-lpl.summ
-  out$fam.summary<-fam.summ
-  
-  if (taxa.summary==T) {
-    
-    fam.mat<-benth.endpoint$fam.mat
-    lpl.mat<-benth.endpoint$lpl.mat
-    
-    for (i in 1:ncol(fam.mat)){
-      s<-sum(fam.mat[,i])
-      fam.mat[,i]<-fam.mat[,i]/s
-    }
-    
-    for (i in 1:ncol(lpl.mat)){
-      s<-sum(lpl.mat[,i])
-      lpl.mat[,i]<-lpl.mat[,i]/s
-    }
-    
-    fam.mat<-fam.mat[order(rowSums(fam.mat),decreasing = T),]
-    lpl.mat<-lpl.mat[order(rowSums(lpl.mat),decreasing = T),]
-    
-    fam.mat<-round(fam.mat,digits=3)
-    lpl.mat<-round(lpl.mat,digits=3)
-    
-    if (!is.na(abund.thresh)){
-      lpl.mat<-lpl.mat[apply(lpl.mat,1,function(x)any(x>abund.thresh)),]
-      fam.mat<-fam.mat[apply(fam.mat,1,function(x)any(x>abund.thresh)),]
-    }
-    
-    out$lpl.prop<-lpl.mat
-    out$fam.prop<-fam.mat
-    
-    lpl.mat<-data.frame(t(lpl.mat))
-    lpl.mat$stations<-benth.endpoint$lpl.endpoints$stations
-    
-    fam.mat<-data.frame(t(fam.mat))
-    fam.mat$stations<-benth.endpoint$fam.endpoints$stations
-    
-    melted.lpl <- melt(lpl.mat, id.vars=c("stations"))
-    melted.fam <- melt(fam.mat, id.vars=c("stations"))
-    
-    lpl.summ<-ddply(melted.lpl, c("stations", "variable"), summarise,
-                    n=length(value[!is.na(value)&value>0]),
-                    min=min(value,na.rm=T),
-                    mean = mean(value,na.rm=T),
-                    median=median(value,na.rm=T),
-                    max=max(value,na.rm=T),
-                    sd = sd(value,na.rm=T),
-                    se = sd(value,na.rm=T)/sqrt(length(value[!is.na(value)])))
-    fam.summ<-ddply(melted.fam, c("stations", "variable"), summarise,
-                    n=length(value[!is.na(value)&value>0]),
-                    min=min(value,na.rm=T),
-                    mean = mean(value,na.rm=T),
-                    median=median(value,na.rm=T),
-                    max=max(value,na.rm=T),
-                    sd = sd(value,na.rm=T),
-                    se = sd(value,na.rm=T)/sqrt(length(value[!is.na(value)])))
-    
-    lpl.summ[,-c(1:3)]<-round(lpl.summ[,-c(1:3)],digits=3)
-    fam.summ[,-c(1:3)]<-round(fam.summ[,-c(1:3)],digits=3)
-    
-    out$lpl.prop.summary<-lpl.summ
-    out$fam.prop.summary<-fam.summ
-    
-    fam.mat.c<-benth.endpoint$fam.mat
-    lpl.mat.c<-benth.endpoint$lpl.mat
-    
-    if (!is.na(abund.thresh)){
-      lpl.mat.c<-lpl.mat.c[rownames(lpl.mat.c)%in%colnames(lpl.mat),]
-      fam.mat.c<-fam.mat.c[rownames(fam.mat.c)%in%colnames(fam.mat),]
-    }
-    
-    fam.mat.c<-fam.mat.c[order(rowSums(fam.mat.c),decreasing = T),]
-    lpl.mat.c<-lpl.mat.c[order(rowSums(lpl.mat.c),decreasing = T),]
-    
-    fam.mat.c<-round(fam.mat.c,digits=3)
-    lpl.mat.c<-round(lpl.mat.c,digits=3)
-    
-    out$lpl.dens<-lpl.mat.c
-    out$fam.dens<-fam.mat.c
-    
-    lpl.mat.c<-data.frame(t(lpl.mat.c))
-    lpl.mat.c$stations<-benth.endpoint$lpl.endpoints$stations
-    
-    fam.mat.c<-data.frame(t(fam.mat.c))
-    fam.mat.c$stations<-benth.endpoint$fam.endpoints$stations
-    
-    melted.lpl <- melt(lpl.mat.c, id.vars=c("stations"))
-    melted.fam <- melt(fam.mat.c, id.vars=c("stations"))
-    
-    lpl.summ<-ddply(melted.lpl, c("stations", "variable"), summarise,
-                    n=length(value[!is.na(value)&value>0]),
-                    min=min(value,na.rm=T),
-                    mean = mean(value,na.rm=T),
-                    median=median(value,na.rm=T),
-                    max=max(value,na.rm=T),
-                    sd = sd(value,na.rm=T),
-                    se = sd(value,na.rm=T)/sqrt(length(value[!is.na(value)])))
-    fam.summ<-ddply(melted.fam, c("stations", "variable"), summarise,
-                    n=length(value[!is.na(value)&value>0]),
-                    min=min(value,na.rm=T),
-                    mean = mean(value,na.rm=T),
-                    median=median(value,na.rm=T),
-                    max=max(value,na.rm=T),
-                    sd = sd(value,na.rm=T),
-                    se = sd(value,na.rm=T)/sqrt(length(value[!is.na(value)])))
-    
-    lpl.summ[,-c(1:3)]<-round(lpl.summ[,-c(1:3)],digits=3)
-    fam.summ[,-c(1:3)]<-round(fam.summ[,-c(1:3)],digits=3)
-    
-    out$lpl.dens.summary<-lpl.summ
-    out$fam.dens.summary<-fam.summ
-  }
-  
-  return(out)
-}
-
-########################################################
-#Function to perform two group comparisions
-#
-#
-########################################################
-
-twogroup_comparision<-function(ref,test,data,alpha=0.1){
-  if (!require(car,quietly = T)) install.packages('car')
-  require(car,quietly = T)
-  
-  ref<-rownames(data)[grepl(ref,rownames(data))]
-  test<-rownames(data)[grepl(test,rownames(data))]
-  
-  site.class<-data.frame(cbind(c(ref,test),c(rep("ref",length(ref)),rep("exp",length(test)))),stringsAsFactors = F)
-  colnames(site.class)<-c("Station","Area")
-  
-  site.class<-cbind(site.class,data[match(site.class$Station,rownames(data)),])
-  
-  metrics<-colnames(data)
-  
-  out<-data.frame(matrix(nrow=length(metrics),ncol=10))
-  colnames(out)<-c("Endpoint","Transformation","Test",
-                   "P-value","Reference_Mean", "Exposure_Mean","Observed_ES","Observed_percent","Measurable_ES","Power")
-  out$Endpoint<-metrics
-  for (i in metrics) {
-    dat1<-data.frame(matrix(nrow=7,ncol=3))
-    colnames(dat1)<-c("Trans","norm","var")
-    dat1$Trans<-c("none","log","squared","square root","forth root",
-                  "logit","arcsine")
-    
-    for (n in dat1$Trans) {
-      if(class(try(transform(site.class[,i],n),silent=T))!="try-error"){
-        if (all(!is.na(transform(site.class[,i],n))) & all(!is.nan(transform(site.class[,i],n)))){
-          dat1$norm[dat1$Trans==n]<-shapiro.test(residuals(lm(transform(site.class[,i],n)~as.factor(site.class$Area))))$p.value
-          dat1$var[dat1$Trans==n]<-leveneTest(y=transform(site.class[,i],n),group=as.factor(site.class$Area))$`Pr(>F)`[1]
-        }
-      }
-    }
-    
-    if (any(dat1$norm>0.05,na.rm = T)){
-      out$Transformation[out$Endpoint==i]<-dat1$Trans[which.max(dat1$norm)]
-      if (dat1$var[which.max(dat1$norm)]>0.05) {
-        out$Test[out$Endpoint==i]<-"T-equal"
-        out$'P-value'[out$Endpoint==i]<-t.test(transform(site.class[,i],out$Transformation[out$Endpoint==i])~as.factor(site.class$Area),
-                                               var.equal=T)$p.value
-      } else {
-        out$Test[out$Endpoint==i]<-"T-unequal"
-        out$'P-value'[out$Endpoint==i]<-t.test(transform(site.class[,i],out$Transformation[out$Endpoint==i])~as.factor(site.class$Area),
-                                               var.equal=F)$p.value
-      }
-      #browser()
-      n<-length(which(site.class$Area=="ref"))
-      ta<-qt(1-alpha/2,length(which(site.class$Area=="ref"))-1)
-      tb<-qt(1-alpha,length(which(site.class$Area=="ref"))-1)
-      sd<-sd(transform(site.class[site.class$Area=="ref",i],out$Transformation[out$Endpoint==i]),na.rm=T)
-      mse<-mean(residuals(aov(transform(site.class[,i],out$Transformation[out$Endpoint==i])~as.factor(site.class$Area)))^2)
-      
-      out$Reference_Mean[out$Endpoint==i]<-mean(site.class[site.class$Area=="ref",i],na.rm=T)
-      out$Exposure_Mean[out$Endpoint==i]<-mean(site.class[site.class$Area=="exp",i],na.rm=T)
-      out$Observed_ES[out$Endpoint==i]<-((transform(out$Exposure_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i])-
-                                            transform(out$Reference_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i]))/
-                                           sd)
-      out$Observed_percent[out$Endpoint==i]<-((transform(out$Exposure_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i])-
-                                                 transform(out$Reference_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i]))/
-                                                transform(out$Reference_Mean[out$Endpoint==i],out$Transformation[out$Endpoint==i]))
-      
-      #browser()
-      
-      #out$Power[out$Endpoint==i]<-pt(sqrt(n/(2*(sqrt(mse)/(2*sd))^2))-ta,n-1)
-      #out$Measurable_ES[out$Endpoint==i]<-((ta+tb)*(sqrt(mse)*(sqrt(2/n))))/sd
-    } else {
-      out$Transformation[out$Endpoint==i]<-"rank"
-      out$Test[out$Endpoint==i]<-"MW"
-      out$'P-value'[out$Endpoint==i]<-wilcox.test(site.class[,i]~as.factor(site.class$Area),exact=T)$p.value
-      out$Reference_Mean[out$Endpoint==i]<-median(site.class[site.class$Area=="ref",i],na.rm=T)
-      out$Exposure_Mean[out$Endpoint==i]<-median(site.class[site.class$Area=="exp",i],na.rm=T)
-      out$Observed_ES[out$Endpoint==i]<-(median(site.class[site.class$Area=="exp",i],na.rm=T)-
-                                           median(site.class[site.class$Area=="ref",i],na.rm=T))/
-        mad(site.class[,i],na.rm=T)
-      
-      out$Observed_percent[out$Endpoint==i]<-(median(site.class[site.class$Area=="exp",i],na.rm=T)-
-                                                median(site.class[site.class$Area=="ref",i],na.rm=T))/
-        median(site.class[site.class$Area=="ref",i],na.rm=T)
-    }
-  }
-  #browser()
-  
-  out[,-c(1:3)]<-round(out[,-c(1:3)],digits=3)
-  out$Observed_percent<-paste0(out$Observed_percent*100,"%")
-  #out[,-c(1:3)]<-scale::comma(out[,-c(1:3,8)])
-  
-  out1<-list()
-  out1$table<-out
-  out1$data<-data
-  
-  class(out1)<-"twogroup_comparision"
-  return(out1)
-}
-
-########################################################
-#Function to plot two group comparisions
-#
-#
-########################################################
-
-plot.twogroup_comparision<-function(x,...) {
-  results<-x$table
-  data<-x$data
-  browser()
 }
 
 
