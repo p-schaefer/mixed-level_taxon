@@ -69,6 +69,7 @@ loop.out$ref.comm<-list()
 loop.out$rem.comm<-list()
 loop.out$complet.index<-data.frame()
 loop.out$diversity<-data.frame()
+loop.out$pwise.diversity<-data.frame()
 loop.out$ordination<-data.frame()
 loop.out$whole.comm<-data.frame()
 loop.out$sim.stats<-data.frame()
@@ -79,12 +80,15 @@ out$few.sp.ID<-loop.out
 out$most.sp.ID<-loop.out
 out$inter.sp.ID<-loop.out
 
+pb = txtProgressBar(min = 0, max = 300, initial = 0,style=3) 
+
 for (n in 1:100){
-  
   for (i in 1:3){
+    
     res.ratio<-list(res.ratio1,res.ratio2,res.ratio3)[[i]]
     res<-c("Few Species IDs","Most Species IDs","Intermediate Species IDs")[i]
-    print(i)
+    #print(i)
+    setTxtProgressBar(pb,n*i,label=res)
     
     ###################
     # Create master taxonomy
@@ -255,6 +259,14 @@ for (n in 1:100){
     div.out$Treatment<-c(rep(variants,times=3)) 
     div.out$Resolution<-res
     
+    pwise.diff<-data.frame(matrix(nrow=length(variants)*3,ncol=3+2))
+    colnames(pwise.diff)[1:3]<-c("Resolution","Treatment","Index")
+    
+    pwise.diff$Index<-c(rep(c("Shannon","Richness","Bray-Curtis"),each=length(variants))) 
+    pwise.diff$Treatment<-c(rep(variants,times=3)) 
+    pwise.diff$Resolution<-res
+    colnames(pwise.diff)[4:5]<-c("Mantel_R","pval")
+    
     ord.out<-data.frame(matrix(nrow=length(variants)*2,ncol=3+3))
     colnames(ord.out)[1:3]<-c("Resolution","Treatment","Index")
     
@@ -306,6 +318,19 @@ for (n in 1:100){
         test.df<-rd.df
       }
       
+      #Pairwise differences
+      shan.p<-vegan::mantel(dist(vegan::diversity(test.df)),dist(vegan::diversity(tax.rem$ref.df)))
+      pwise.diff$Mantel_R[div.out$Index=="Shannon" & div.out$Treatment==z]<-shan.p$statistic
+      pwise.diff$pval[div.out$Index=="Shannon" & div.out$Treatment==z]<-shan.p$signif
+      
+      rich.p<-vegan::mantel(dist(vegan::specnumber(test.df)),dist(vegan::specnumber(tax.rem$ref.df)))
+      pwise.diff$Mantel_R[div.out$Index=="Richness" & div.out$Treatment==z]<-rich.p$statistic
+      pwise.diff$pval[div.out$Index=="Richness" & div.out$Treatment==z]<-rich.p$signif
+      
+      bray.p<-vegan::mantel(vegan::vegdist(test.df),vegan::vegdist(tax.rem$ref.df))
+      pwise.diff$Mantel_R[div.out$Index=="Bray-Curtis" & div.out$Treatment==z]<-bray.p$statistic
+      pwise.diff$pval[div.out$Index=="Bray-Curtis" & div.out$Treatment==z]<-bray.p$signif
+
       #Diversity + Richness
       div.out[div.out$Index=="Shannon" & div.out$Treatment==z,-c(1:3)]<-vegan::diversity(test.df)-vegan::diversity(tax.rem$ref.df)
       div.out[div.out$Index=="Richness" & div.out$Treatment==z,-c(1:3)]<-vegan::specnumber(test.df)-vegan::specnumber(tax.rem$ref.df)
@@ -319,7 +344,7 @@ for (n in 1:100){
       }
       
       div.out[div.out$Index=="Bray-Curtis" & div.out$Treatment==z,-c(1:3)]<-bray.diff
-
+      
       #Abundance Ordination
       rem.forOrd<-log10(test.df+1)
       ref.forOrd<-log10(tax.rem$ref.df+1)
@@ -353,8 +378,7 @@ for (n in 1:100){
       
       ############################
       # Stats on variants
-      
-      
+
       var.stats<-data.frame(plyr::ldply(strsplit(split="-",x=colnames(test.df)), rbind),stringsAsFactors = F)
       
       var.stats<-cbind(do.call(rbind,replicate(30,var.stats,simplify=F)),c(t(test.df)))
@@ -385,7 +409,7 @@ for (n in 1:100){
       
       var.stats.out<-rbind(var.stats.out,var.stats)
       
-      
+      rm(test.df)
     }
     
     ## Simulation stats
@@ -428,15 +452,34 @@ for (n in 1:100){
     div.out$rep<-n
     ord.out$rep<-n
     
+    div.out <- div.out %>% 
+      tidyr::gather("sample","difference",-c(1:3)) %>%
+      group_by(Treatment,Index) %>%
+      summarize(min=min(difference),
+                mean=mean(difference),
+                max=max(difference),
+                sd=sd(difference)) %>%
+      arrange(Index) %>%
+      as.data.frame()
+    
+    
     #Paste all values to output
+    temp3$Resolution<-res
+    var.stats.out$Resolution<-res
+    div.out$Resolution<-res
+    div.out$rep<-n
+    pwise.diff$rep<-n
+    
+    
     out[[i]]$sim.stats<-rbind(out[[i]]$sim.stats,temp3)
     
     out[[i]]$var.stats<-rbind(out[[i]]$var.stats,var.stats.out)
     
+    out[[i]]$pwise.diversity<-rbind(out[[i]]$pwise.diversity,pwise.diff)
     out[[i]]$diversity<-rbind(out[[i]]$diversity,div.out)
     out[[i]]$ordination<-rbind(out[[i]]$ordination,ord.out)
     
-    print(n)
+    #print(n)
   }
   
 }
