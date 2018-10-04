@@ -1,21 +1,31 @@
 source("functions.R")
 
-metrics<-lapply(output8,"[[",5)
-ordination<-lapply(output8,"[[",6)
+metrics<-lapply(output9,"[[",5)
+pw.metrics<-lapply(output9,"[[",6)
+
+ordination<-lapply(output9,"[[",7)
 
 metrics1<-do.call(rbind,metrics)
-metrics1<-reshape2::melt(metrics1,id=c("Resolution","Treatment","Index"))
+pw.metrics1<-do.call(rbind,pw.metrics)
 
-metrics1[metrics1$Index=="Richness","value"]<-log10(abs(metrics1[metrics1$Index=="Richness","value"])+1)
+#metrics1<-reshape2::melt(metrics1,id=c("Resolution","Treatment","Index"))
+
+#metrics1[metrics1$Index=="Richness","value"]<-log10(abs(metrics1[metrics1$Index=="Richness","value"])+1)
 
 ordination1<-do.call(rbind,ordination)
 
 library(ggplot2)
 
-metric.plot<-ggplot(aes(x=Treatment,y=value),data=metrics1)+
+metric.plot<-ggplot(aes(x=Treatment,y=mean),data=metrics1)+
   geom_boxplot() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))+
   facet_wrap(Resolution~Index,scales="free_y")
+
+pw.metrics.plot<-ggplot(aes(x=Treatment,y=Mantel_R),data=pw.metrics1)+
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  facet_wrap(Resolution~Index,scales="free_y")
+
 
 metric.plot1<-ggplot(aes(x=Resolution,y=value,fill=Treatment),
                      data=metrics1[metrics1$Treatment%in%c("dec.key","rd","dec.key.higherP5","dec.key.lowerP5"),])+
