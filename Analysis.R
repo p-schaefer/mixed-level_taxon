@@ -8,10 +8,6 @@ ordination<-lapply(output9,"[[",7)
 metrics1<-do.call(rbind,metrics)
 pw.metrics1<-do.call(rbind,pw.metrics)
 
-#metrics1<-reshape2::melt(metrics1,id=c("Resolution","Treatment","Index"))
-
-#metrics1[metrics1$Index=="Richness","value"]<-log10(abs(metrics1[metrics1$Index=="Richness","value"])+1)
-
 ordination1<-do.call(rbind,ordination)
 
 library(ggplot2)
@@ -27,11 +23,31 @@ pw.metrics.plot<-ggplot(aes(x=Treatment,y=Mantel_R),data=pw.metrics1)+
   facet_wrap(Resolution~Index,scales="free_y")
 
 
-metric.plot1<-ggplot(aes(x=Resolution,y=value,fill=Treatment),
-                     data=metrics1[metrics1$Treatment%in%c("dec.key","rd","dec.key.higherP5","dec.key.lowerP5"),])+
+metric.plot1<-ggplot(aes(x=Resolution,y=mean,fill=Treatment),
+                     data=metrics1[metrics1$Treatment%in%c("dec.key","rd","ru"),])+
   geom_boxplot() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))+
   facet_wrap(~Index,scales="free_y")
+
+met.decKey<-ggplot(aes(x=Resolution,y=mean,fill=Treatment),
+                   data=metrics1[metrics1$Treatment%in%unique(metrics1$Treatment)[1:10],])+
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  facet_wrap(~Index,scales="free_y")
+
+
+pw.metric.plot1<-ggplot(aes(x=Resolution,y=Mantel_R,fill=Treatment),
+                     data=pw.metrics1[pw.metrics1$Treatment%in%c("dec.key","rd","ru"),])+
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  facet_wrap(~Index,scales="free_y")
+
+pw.met.decKey<-ggplot(aes(x=Resolution,y=Mantel_R,fill=Treatment),
+                   data=pw.metrics1[pw.metrics1$Treatment%in%unique(pw.metrics1$Treatment)[2:11],])+
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  facet_wrap(~Index,scales="free_y")
+
 
 # metric.plot2<-beanplot::beanplot(value~as.factor(Treatment)*as.factor(Resolution),
 #                                  data=metrics1[metrics1$Treatment%in%c("dec.key","rd"),],
